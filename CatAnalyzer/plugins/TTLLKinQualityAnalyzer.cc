@@ -32,6 +32,7 @@ public:
   void bookingBranch() { 
     ttree_->Branch("bjet1","TLorentzVector",&(this->j1_));
     ttree_->Branch("bjet2","TLorentzVector",&(this->j2_));
+    ttree_->Branch("lepton_charge", &(lepton_charge_[0]),"lepton_charge[2]/I");
     ttree_->Branch("bjet_charge", &(bjet_charge_[0]),"bjet_charge[2]/I");
     ttree_->Branch("bjet_partonPdgId", &(bjet_partonPdgId_[0]),"bjet_partonPdgId[2]/I");
     ttree_->Branch("pair_quality",&(quality_),"quality/D");
@@ -40,6 +41,8 @@ public:
   void resetBranch() {
     j1_ = TLorentzVector();
     j2_ = TLorentzVector();
+    lepton_charge_[0]=-999;
+    lepton_charge_[1]=-999;
     bjet_charge_[0]=-999;
     bjet_charge_[1]=-999;
     bjet_partonPdgId_[0] = 0;
@@ -68,6 +71,7 @@ private:
 
   TTree* ttree_;
   TLorentzVector j1_,j2_;
+  int lepton_charge_[2];
   int bjet_charge_[2];
   int bjet_partonPdgId_[2];
   double quality_;
@@ -181,6 +185,8 @@ void TTLLKinQualityAnalyzer::analyze(const edm::Event& event, const edm::EventSe
 
         j1_ = TLorentzVector( jet1.px(), jet1.py(), jet1.pz(), jet1.energy());
         j2_ = TLorentzVector( jet2.px(), jet2.py(), jet2.pz(), jet2.energy());
+        lepton_charge_[0] = lep1->charge();
+        lepton_charge_[1] = lep2->charge();
         bjet_charge_[0] = jet1.charge();
         bjet_charge_[1] = jet2.charge();
         bjet_partonPdgId_[0] = jet1.partonPdgId();
