@@ -32,8 +32,9 @@ public:
   void bookingBranch() { 
     ttree_->Branch("bjet1","TLorentzVector",&(this->j1_));
     ttree_->Branch("bjet2","TLorentzVector",&(this->j2_));
-    ttree_->Branch("bjet_charge", &(bjet_charge_[0]),"bjet_charge[2]/F");
-    ttree_->Branch("pair_quality",&(quality_),"quality/I");
+    ttree_->Branch("bjet_charge", &(bjet_charge_[0]),"bjet_charge[2]/I");
+    ttree_->Branch("bjet_partonPdgId", &(bjet_partonPdgId_[0]),"bjet_partonPdgId[2]/I");
+    ttree_->Branch("pair_quality",&(quality_),"quality/D");
 
   }
   void resetBranch() {
@@ -41,6 +42,8 @@ public:
     j2_ = TLorentzVector();
     bjet_charge_[0]=-999;
     bjet_charge_[1]=-999;
+    bjet_partonPdgId_[0] = 0;
+    bjet_partonPdgId_[1] = 0;
     quality_ = -1e9;
   }
 
@@ -48,9 +51,8 @@ private:
   void beginLuminosityBlock(const edm::LuminosityBlock& lumi, const edm::EventSetup&) final;
   void endLuminosityBlock(const edm::LuminosityBlock&, const edm::EventSetup&) override {};
   edm::EDGetTokenT<edm::View<reco::CandidatePtr> > leptonPtrToken_;
-  edm::EDGetTokenT<edm::View<reco::CandidatePtr> > jetPtrToken_;
   edm::EDGetTokenT<edm::View<reco::Candidate> > leptonToken_;
-  edm::EDGetTokenT<edm::View<reco::Candidate> > jetToken_;
+  edm::EDGetTokenT<cat::JetCollection > jetToken_;
   edm::EDGetTokenT<float> metToken_, metphiToken_;
   double applyJetCharge_;
   
@@ -67,6 +69,7 @@ private:
   TTree* ttree_;
   TLorentzVector j1_,j2_;
   int bjet_charge_[2];
+  int bjet_partonPdgId_[2];
   double quality_;
 
 
@@ -91,8 +94,7 @@ TTLLKinQualityAnalyzer::TTLLKinQualityAnalyzer(const edm::ParameterSet& pset)
 {
   leptonPtrToken_ = mayConsume<edm::View<reco::CandidatePtr> >(pset.getParameter<edm::InputTag>("leptons"));
   leptonToken_ = mayConsume<edm::View<reco::Candidate> >(pset.getParameter<edm::InputTag>("leptons"));
-  jetPtrToken_ = mayConsume<edm::View<reco::CandidatePtr> >(pset.getParameter<edm::InputTag>("jets"));
-  jetToken_ = mayConsume<edm::View<reco::Candidate> >(pset.getParameter<edm::InputTag>("jets"));
+  jetToken_ = mayConsume<cat::JetCollection>(pset.getParameter<edm::InputTag>("jets"));
   metToken_ = consumes<float>(pset.getParameter<edm::InputTag>("met"));
   metphiToken_ = consumes<float>(pset.getParameter<edm::InputTag>("metphi"));
   applyJetCharge_ = pset.getParameter<double>("applyJetCharge");
@@ -135,16 +137,9 @@ void TTLLKinQualityAnalyzer::analyze(const edm::Event& event, const edm::EventSe
     for ( int i=0, n=leptonHandle->size(); i<n; ++i ) leptons.push_back(reco::CandidatePtr(leptonHandle, i));
   }
 
-  std::vector<reco::CandidatePtr> jets;
-  edm::Handle<edm::View<reco::CandidatePtr> > jetPtrHandle;
-  edm::Handle<edm::View<reco::Candidate> > jetHandle;
-  if ( event.getByToken(jetPtrToken_, jetPtrHandle) ) {
-    for ( auto x : *jetPtrHandle ) jets.push_back(x);
-  }
-  else {
-    event.getByToken(jetToken_, jetHandle);
-    for ( int i=0, n=jetHandle->size(); i<n; ++i ) jets.push_back(reco::CandidatePtr(jetHandle, i));
-  }
+  //std::vector<cat::Jet> jets;
+  edm::Handle<cat::JetCollection> jets;
+  event.getByToken(jetToken_, jets);
 
   edm::Handle<float> metHandle;
   event.getByToken(metToken_, metHandle);
@@ -156,7 +151,7 @@ void TTLLKinQualityAnalyzer::analyze(const edm::Event& event, const edm::EventSe
   do {
     // Check objects to exist
     if ( leptons.size() < 2 ) break;
-    if ( jets.size() < 2 ) break;
+    if ( (*jets).size() < 2 ) break;
 
     // Pick leading leptons.
     const auto lep1 = leptons.at(0);
@@ -169,24 +164,27 @@ void TTLLKinQualityAnalyzer::analyze(const edm::Event& event, const edm::EventSe
 
     // Run the solver with all jet combinations
     reco::CandidatePtr selectedJet1, selectedJet2;
-    for ( auto jet1 : jets )
+    for ( auto jet1 : *jets )
     {
-      inputLV[3] = jet1->p4();
-      for ( auto jet2 : jets )
+      inputLV[3] = jet1.p4();
+      for ( auto jet2 : *jets )
       {
-        if ( jet1 == jet2 ) continue;
-        inputLV[4] = jet2->p4();
+        if ( dynamic_cast<reco::LeafCandidate*>(&jet1) == dynamic_cast<reco::LeafCandidate*>(&jet2) ) continue;
+        inputLV[4] = jet2.p4();
 
         solver_->solve(inputLV);
           
         quality = solver_->quality();
+        //std::cout<<"Quality : "<<quality<<std::endl;
         if ( quality <= -1e9 ) break; // failed to get solution
         resetBranch();
 
-        j1_ = TLorentzVector( jet1->px(), jet1->py(), jet1->pz(), jet1->energy());
-        j2_ = TLorentzVector( jet2->px(), jet2->py(), jet2->pz(), jet2->energy());
-        bjet_charge_[0] = jet1->charge();
-        bjet_charge_[1] = jet2->charge();
+        j1_ = TLorentzVector( jet1.px(), jet1.py(), jet1.pz(), jet1.energy());
+        j2_ = TLorentzVector( jet2.px(), jet2.py(), jet2.pz(), jet2.energy());
+        bjet_charge_[0] = jet1.charge();
+        bjet_charge_[1] = jet2.charge();
+        bjet_partonPdgId_[0] = jet1.partonPdgId();
+        bjet_partonPdgId_[1] = jet2.partonPdgId();
         quality_ = quality;
         ttree_->Fill();
       }
