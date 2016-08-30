@@ -311,3 +311,12 @@ def set_palette(name="", ncontours=999):
     npoints = len(s)
     TColor.CreateGradientColorTable(npoints, s, r, g, b, ncontours)
     gStyle.SetNumberContours(ncontours)
+def fBreitWigner(x,par):
+    '''
+    par[0] = constant
+    par[1] = mean
+    par[2] = gamma
+    '''
+    pi = ROOT.TMath.Pi()
+    return par[2]/((x[0]-par[1])*(x[0]-par[1]) + par[2]*par[2]/4) * (2/pi) * par[0]
+

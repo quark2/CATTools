@@ -24,6 +24,23 @@ using namespace cat;
 
 
 
+int mcTruthJet(cat::JetCollection jets, reco::LeafCandidate bjet) {
+  double deltaR= 999.;
+  double relPt = 0.0;
+  int pdgId = 0;
+  for( auto jet : jets ) {
+    double currentDeltaR = reco::deltaR(jet, bjet);
+    if ( currentDeltaR < deltaR) {
+      deltaR = currentDeltaR;
+      pdgId = jet.partonPdgId();      
+      relPt = fabs(jet.pt() - bjet.pt())/(jet.pt());
+    }
+  }
+  if ( deltaR>0.15) return 0;
+  if ( relPt <0.10) return 0;
+  return pdgId;
+}
+
 
 JetChargeAnalyzer::JetChargeAnalyzer(const edm::ParameterSet& iConfig)
 {
@@ -145,6 +162,11 @@ void JetChargeAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
   data1->bjet[1] = new TLorentzVector(bjet2.px(), bjet2.py(), bjet2.pz(), bjet2.energy());
   data1->bjet_charge[0] = (*solverCands)[7].charge();
   data1->bjet_charge[1] = (*solverCands)[8].charge();
+  data1->bjet_pdgId[0]  = mcTruthJet( selectedJets, (*solverCands)[7]);
+  data1->bjet_pdgId[1]  = mcTruthJet( selectedJets, (*solverCands)[8]);
+
+
+
 
   data2->reset();
   for( int i=0 ; i<2 ; ++i) {
@@ -172,6 +194,8 @@ void JetChargeAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup&
   data2->bjet[1] = new TLorentzVector(bjet2.px(), bjet2.py(), bjet2.pz(), bjet2.energy());
   data2->bjet_charge[0] = (*solverCands)[7].charge();
   data2->bjet_charge[1] = (*solverCands)[8].charge();
+  data2->bjet_pdgId[0]  = data1->bjet_pdgId[0]; 
+  data2->bjet_pdgId[1]  = data1->bjet_pdgId[1];
 
   ttree_->Fill();
   rtree_->Fill();

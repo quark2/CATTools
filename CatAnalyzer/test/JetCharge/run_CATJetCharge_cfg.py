@@ -4,7 +4,7 @@ process = cms.Process("TtbarDiLeptonAnalyzer")
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load("CATTools.CatAnalyzer.ttll.ttbarDileptonKinSolutionProducer_cfi")
 process.load("CATTools.CatAnalyzer.ttll.ttbarDileptonKinSolutionAlgos_cff")
-process.load("CATTools.CatAnalyzer.ttll.ttllEventSelector_cfi")
+process.load("CATTools.Validation.ttllEventSelector_cfi")
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(False) )
@@ -32,7 +32,6 @@ process.source.fileNames = ['root://cms-xrdr.sdfarm.kr:1094///xrd/store/group/CA
 from CATTools.CatAnalyzer.leptonSF_cff import *
 
 process.load("CATTools.CatAnalyzer.filters_cff")
-process.load("CATTools.CatAnalyzer.ttll.ttllEventSelector_cfi")
 process.load("CATTools.CatAnalyzer.ttll.ttllGenFilters_cff")
 
 process.load("CATTools.CatAnalyzer.flatGenWeights_cfi")
@@ -77,6 +76,7 @@ process.eventsTTLL.filters.ignoreTrig = cms.bool(True)
 
 process.ttbarDileptonKin.algo = process.ttbarDileptonKinAlgoPSetCMSKin
 
+process.ttbarDileptonKin.applyJetCharge = cms.double(1.1)
 
 if ( options.isTT ) : 
   print "This is TT Samples. Run agen and filter parto."
