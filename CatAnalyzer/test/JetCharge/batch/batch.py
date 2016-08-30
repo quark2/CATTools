@@ -1,7 +1,17 @@
 #!/usr/bin/env python
 
-import os
-datasetList=  open("dataset.txt").readlines()
+import os,sys
+
+if ( len(sys.argv) != 2) : 
+  print "Wrong argument"
+  os.exit(-1)
+
+if ( not os.path.isfile(sys.argv[1])) :
+  print "Wrong filename"
+  os.exit(-1)
+  
+datasetList =  open(sys.argv[1]).readlines()
+
 
 for filename in datasetList :
   filename = filename.strip()
