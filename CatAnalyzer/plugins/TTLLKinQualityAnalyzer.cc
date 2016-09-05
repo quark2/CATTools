@@ -30,24 +30,40 @@ public:
   virtual ~TTLLKinQualityAnalyzer() {};
   void analyze(const edm::Event & event, const edm::EventSetup&) override;
   void bookingBranch() { 
-    ttree_->Branch("bjet1","TLorentzVector",&(this->j1_));
-    ttree_->Branch("bjet2","TLorentzVector",&(this->j2_));
-    ttree_->Branch("lepton_charge", &(lepton_charge_[0]),"lepton_charge[2]/I");
-    ttree_->Branch("bjet_charge", &(bjet_charge_[0]),"bjet_charge[2]/I");
-    ttree_->Branch("bjet_partonPdgId", &(bjet_partonPdgId_[0]),"bjet_partonPdgId[2]/I");
-    ttree_->Branch("pair_quality",&(quality_),"quality/D");
+    ttree_->Branch("bjet1_all","TLorentzVector",&(this->j1_));
+    ttree_->Branch("bjet2_all","TLorentzVector",&(this->j2_));
+    ttree_->Branch("bjet1_qcut","TLorentzVector",&(this->j3_));
+    ttree_->Branch("bjet2_qcut","TLorentzVector",&(this->j4_));
+    ttree_->Branch("lep_charge", &(lepton_charge_[0]),"lep_charge[2]/I");
+    ttree_->Branch("bjet_charge_all", &(bjet_charge_all_[0]),"bjet_charge_all[2]/I");
+    ttree_->Branch("bjet_charge_qcut", &(bjet_charge_qcut_[0]),"bjet_charge_qcut[2]/I");
+    ttree_->Branch("bjet_partonPdgId_all", &(bjet_partonPdgId_all_[0]),"bjet_partonPdgId_all[2]/I");
+    ttree_->Branch("bjet_partonPdgId_qcut", &(bjet_partonPdgId_qcut_[0]),"bjet_partonPdgId_qcut[2]/I");
+    ttree_->Branch("pair_quality_all",&(quality_all_),"quality_all/D");
+    ttree_->Branch("pair_quality_qcut",&(quality_qcut_),"quality_qcut/D");
 
   }
   void resetBranch() {
     j1_ = TLorentzVector();
     j2_ = TLorentzVector();
+    j3_ = TLorentzVector();
+    j4_ = TLorentzVector();
     lepton_charge_[0]=-999;
     lepton_charge_[1]=-999;
-    bjet_charge_[0]=-999;
-    bjet_charge_[1]=-999;
-    bjet_partonPdgId_[0] = 0;
-    bjet_partonPdgId_[1] = 0;
-    quality_ = -1e9;
+    bjet_charge_all_[0]=-999;
+    bjet_charge_all_[1]=-999;
+    bjet_charge_qcut_[0]=-999;
+    bjet_charge_qcut_[1]=-999;
+    bjet_partonPdgId_all_[0] = 0;
+    bjet_partonPdgId_all_[1] = 0;
+    bjet_partonPdgId_qcut_[0] = 0;
+    bjet_partonPdgId_qcut_[1] = 0;
+    quality_all_  = -1e9;
+    quality_qcut_ = -1e9;
+  }
+  bool findPairUsingJetCharge( int lep1_charge, cat::Jet j1, cat::Jet j2 ) {
+    if ( lep1_charge*(j1.charge() - j2.charge())<0 ) return true;
+    else return false; 
   }
 
 private:
@@ -70,11 +86,14 @@ private:
   typedef std::vector< QCP > QCPs;
 
   TTree* ttree_;
-  TLorentzVector j1_,j2_;
+  TLorentzVector j1_,j2_,j3_,j4_;
   int lepton_charge_[2];
-  int bjet_charge_[2];
-  int bjet_partonPdgId_[2];
-  double quality_;
+  int bjet_charge_all_[2];
+  int bjet_charge_qcut_[2];
+  int bjet_partonPdgId_all_[2];
+  int bjet_partonPdgId_qcut_[2];
+  double quality_all_;
+  double quality_qcut_;
 
 
   std::unique_ptr<KinematicSolver> solver_;
@@ -164,10 +183,14 @@ void TTLLKinQualityAnalyzer::analyze(const edm::Event& event, const edm::EventSe
     const LV lep2LV = lep2->p4();
     LV inputLV[5] = {metLV, lep1LV, lep2LV};
     LV nu1LV, nu2LV;
-    double quality = -1e9; // Default quality value
 
     // Run the solver with all jet combinations
     reco::CandidatePtr selectedJet1, selectedJet2;
+    resetBranch();
+
+    lepton_charge_[0] = lep1->charge();
+    lepton_charge_[1] = lep2->charge();
+
     for ( auto jet1 : *jets )
     {
       inputLV[3] = jet1.p4();
@@ -178,23 +201,31 @@ void TTLLKinQualityAnalyzer::analyze(const edm::Event& event, const edm::EventSe
 
         solver_->solve(inputLV);
           
-        quality = solver_->quality();
+        auto quality = solver_->quality();
         //std::cout<<"Quality : "<<quality<<std::endl;
         if ( quality <= -1e9 ) break; // failed to get solution
-        resetBranch();
 
-        j1_ = TLorentzVector( jet1.px(), jet1.py(), jet1.pz(), jet1.energy());
-        j2_ = TLorentzVector( jet2.px(), jet2.py(), jet2.pz(), jet2.energy());
-        lepton_charge_[0] = lep1->charge();
-        lepton_charge_[1] = lep2->charge();
-        bjet_charge_[0] = jet1.charge();
-        bjet_charge_[1] = jet2.charge();
-        bjet_partonPdgId_[0] = jet1.partonPdgId();
-        bjet_partonPdgId_[1] = jet2.partonPdgId();
-        quality_ = quality;
-        ttree_->Fill();
+        if ( quality > quality_all_) {
+          j1_ = TLorentzVector( jet1.px(), jet1.py(), jet1.pz(), jet1.energy());
+          j2_ = TLorentzVector( jet2.px(), jet2.py(), jet2.pz(), jet2.energy());
+          bjet_charge_all_[0] = jet1.charge();
+          bjet_charge_all_[1] = jet2.charge();
+          bjet_partonPdgId_all_[0] = jet1.partonPdgId();
+          bjet_partonPdgId_all_[1] = jet2.partonPdgId();
+          quality_all_ = quality;
+        }
+        if ( quality > quality_qcut_ && findPairUsingJetCharge(lepton_charge_[0], jet1, jet2)  ) {
+          j3_ = TLorentzVector( jet1.px(), jet1.py(), jet1.pz(), jet1.energy());
+          j4_ = TLorentzVector( jet2.px(), jet2.py(), jet2.pz(), jet2.energy());
+          bjet_charge_qcut_[0] = jet1.charge();
+          bjet_charge_qcut_[1] = jet2.charge();
+          bjet_partonPdgId_qcut_[0] = jet1.partonPdgId();
+          bjet_partonPdgId_qcut_[1] = jet2.partonPdgId();
+          quality_qcut_ = quality;
+        }
       }
     }
+  ttree_->Fill();
   }while(false);
 }
 
