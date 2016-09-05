@@ -57,6 +57,18 @@ void CountEvents(const char* filename="cmskin_quality.root")
     int pair_j2_all = bjet_partonPdgId_all[1]*lepton_charge[1];
     int pair_j1_qcut = bjet_partonPdgId_qcut[0]*lepton_charge[0];
     int pair_j2_qcut = bjet_partonPdgId_qcut[1]*lepton_charge[1];
+
+    if ( *pair_quality_all>0)  { 
+      h11->Fill(pair_j1_all);
+      h11_1->Fill(pair_j2_all);
+    }
+    if ( *pair_quality_qcut>0) {
+      h12->Fill(pair_j1_qcut);
+      h12_1->Fill(pair_j2_qcut);
+    }
+
+
+
   }
   h3->SetLineColor(kRed);
   h3->SetMarkerColor(kRed);
@@ -77,6 +89,24 @@ void CountEvents(const char* filename="cmskin_quality.root")
   h4->Draw();
   h8->Draw("same");
   c2->SaveAs("compare_and.png");
+
+  TCanvas* c3 = new TCanvas("pdgId_jet1","pdgId_jet1");
+  h11->SetLineColor(kRed);
+  h11->SetMarkerColor(kRed);
+  h12->SetLineColor(kBlue);
+  h12->SetMarkerColor(kBlue);
+  h11->Draw();
+  h12->Draw("same");
+  c3->SaveAs("pdgId_jet1_all_vs_qcut.png");
+
+  TCanvas* c4 = new TCanvas("pdgId_jet2","pdgId_jet2");
+  h11_1->SetLineColor(kRed);
+  h11_1->SetMarkerColor(kRed);
+  h12_1->SetLineColor(kBlue);
+  h12_1->SetMarkerColor(kBlue);
+  h11_1->Draw();
+  h12_1->Draw("same");
+  c4->SaveAs("pdgId_jet2_all_vs_qcut.png");
 
 }
 
