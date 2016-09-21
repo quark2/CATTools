@@ -7,8 +7,8 @@ ROOT.gROOT.SetBatch(True)
 dstarDraw.py -a 1 -s 1 -c 'tri==1&&filtered==1' -b [40,0,40] -p nvertex -x 'no. vertex' &
 dstarDraw.py -a 1 -s 1 -b [100,-3,3] -p lep1_eta,lep2_eta -x '#eta' &
 '''
-datalumi = 2.17
-CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
+datalumi = 8.54 # Run2016 B & C
+CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13.8 TeV"%(datalumi)
 datalumi = datalumi*1000 # due to fb
 CMS_lumi.extraText   = "Private work"
 mcfilelist = ['TT_powheg', 'WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW', 'WZ', 'DYJets', 'DYJets_10to50']
@@ -20,9 +20,16 @@ channel_name = ['Combined', 'MuEl', 'ElEl', 'MuMu']
 
 datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json" % os.environ['CMSSW_BASE']))
 
+###############################################################################
+## 
+## One day, if the problem about trigger in ee and em channel is solved, 
+## you MUST return to the original code in DYestimation.py.
+## 
+###############################################################################
+
 #defalts
 step = 1
-channel = 1
+channel = 3
 cut = 'tri!=0&&filtered==1'
 weight = 'genweight*puweight*mueffweight*eleffweight*tri*topPtWeight'
 binning = [60, 20, 320]
@@ -71,13 +78,18 @@ for opt, arg in opts:
 tname = "cattree/nom"
 
 #cut define
-if   channel == 1: ttother_tcut = "!(gen_partonChannel==2 && ((gen_partonMode1==1 && gen_partonMode2==2) || (gen_partonMode1==2 && gen_partonMode2==1)))"
-elif channel == 2: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==2 && gen_partonMode2==2))"
-elif channel == 3: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==1 && gen_partonMode2==1))"
-stepch_tcut =  'step>=%i'%(step)
+stepch_tcut = 'step>=%i'%(step)
+if channel != 0: stepch_tcut = '%s&&channel==%i'%(stepch_tcut,channel)
 tcut = '(%s&&%s)*(%s)'%(stepch_tcut,cut,weight)
-ttother_tcut = '(%s&&%s&&%s)*(%s)'%(stepch_tcut,cut,ttother_tcut,weight)
-rd_tcut = '%s&&%s'%(stepch_tcut,cut)
+
+#if   channel == 1: 
+#  ttother_tcut = "!(gen_partonChannel==2 && ((gen_partonMode1==1 && gen_partonMode2==2) || (gen_partonMode1==2 && gen_partonMode2==1)))"
+#elif channel == 2: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==2 && gen_partonMode2==2))"
+#elif channel == 3: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==1 && gen_partonMode2==1))"
+
+#ttother_tcut = '(%s&&%s&&%s)*(%s)'%(stepch_tcut,cut,ttother_tcut,weight)
+#rd_tcut = '%s&&%s'%(stepch_tcut,cut)
+
 print "TCut =",tcut
 
 #namming
@@ -140,8 +152,10 @@ if len(binning) == 3:
 else:
   rdhist = ROOT.TH1D("name", title, len(binning)-1, array.array('f', binning))
 for i, rdfile in enumerate(rdfilelist):
+  if channel != 0 and i + 1 != channel : continue
   rfname = rootfileDir + rdfile +".root"
-  rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
+  #rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
+  rdtcut = '(channel==%d&&%s&&%s)'%((i+1),stepch_tcut,cut)
   rdhist_tmp = makeTH1(rfname, tname, 'data', binning, plotvar, rdtcut)
   rdhist.SetLineColor(1)
   rdhist.Add(rdhist_tmp)
@@ -169,7 +183,7 @@ if binNormalize and len(binning)!=3:
 var = plotvar.split(',')[0]
 #var = ''.join(i for i in var if not i.isdigit())
 var = ''.join(i for i in var )
-outfile = "Dilepton_s%d_%s%s.png"%(step,var,suffix)
+outfile = "Dilepton_%s_s%d%s.png"%(var,step,suffix)
 drawTH1(outfile, CMS_lumi, mchistList, rdhist, x_name, y_name, dolog)
 print outfile
 

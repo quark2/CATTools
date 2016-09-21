@@ -43,7 +43,8 @@ def	getDYFactor(rfname, front_rfname, scale, front_scale, rootfileDir, tname, cu
 	rfname = rootfileDir + rdfilelist[3-1] +".root"
 	rd_mm_in = makeTH1(rfname, tname,'rd_mm_in', [2,0,2], 'tri', dycut+'(%s && channel==3 && step2 ==0)'%(cut))
 
-	dyest = drellYanEstimation(mc_ee_in.Integral(), mc_ee_out.Integral(), mc_mm_in.Integral(), mc_mm_out.Integral(), rd_ee_in.Integral(), rd_mm_in.Integral(), rd_em_in.Integral(), kMM, kEE)
+	#dyest = drellYanEstimation(mc_ee_in.Integral(), mc_ee_out.Integral(), mc_mm_in.Integral(), mc_mm_out.Integral(), rd_ee_in.Integral(), rd_mm_in.Integral(), rd_em_in.Integral(), kMM, kEE)
+	dyest = drellYanEstimation(1, 1, mc_mm_in.Integral(), mc_mm_out.Integral(), rd_ee_in.Integral(), rd_mm_in.Integral(), rd_em_in.Integral(), kMM, kEE)
 	return dyest
 
 def printDYFactor(rootfileDir, tname, datasets, datalumi, cut, weight, rdfilelist):
