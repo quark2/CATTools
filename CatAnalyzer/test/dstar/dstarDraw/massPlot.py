@@ -20,7 +20,7 @@ datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json
 
 #defalts
 step = 1
-channel = 1
+channel = 3
 cut = 'tri!=0&&filtered==1'
 weight = 'genweight*puweight*mueffweight*eleffweight*tri*topPtWeight'
 binning = [60, 20, 320]

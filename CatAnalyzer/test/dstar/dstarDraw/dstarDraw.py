@@ -8,7 +8,7 @@ dstarDraw.py -a 1 -s 1 -c 'tri==1&&filtered==1' -b [40,0,40] -p nvertex -x 'no. 
 dstarDraw.py -a 1 -s 1 -b [100,-3,3] -p lep1_eta,lep2_eta -x '#eta' &
 '''
 datalumi = 8.54 # Run2016 B & C
-CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13.8 TeV"%(datalumi)
+CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
 datalumi = datalumi*1000 # due to fb
 CMS_lumi.extraText   = "Private work"
 mcfilelist = ['TT_powheg', 'WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW', 'WZ', 'DYJets', 'DYJets_10to50']
