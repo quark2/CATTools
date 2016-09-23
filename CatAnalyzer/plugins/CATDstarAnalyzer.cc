@@ -25,6 +25,7 @@ class CATDstarAnalyzer : public dileptonCommon {
     std::vector<float> b_d0_LXY, b_d0_L3D, b_d0_dRTrue, b_d0_relPtTrue, b_d0_dca;
     std::vector<float> b_d0_dau1_q;
     std::vector<float> b_d0_dau2_q;
+    std::vector<float> b_d0_vProb;
 
     std::vector<bool> b_dstar_true, b_dstar_fit;
     //std::vector<float> b_dstar_pt, b_dstar_eta, b_dstar_phi, b_dstar_m;
@@ -32,6 +33,8 @@ class CATDstarAnalyzer : public dileptonCommon {
     std::vector<float> b_dstar_dau1_q;
     std::vector<float> b_dstar_dau2_q;
     std::vector<float> b_dstar_dau3_q;
+    std::vector<float> b_dstar_vProb;
+    std::vector<float> b_dstar_diffMass;
 
     TClonesArray *b_d0,    *b_d0_dau1,    *b_d0_dau2; 
     TClonesArray *b_dstar, *b_dstar_dau1, *b_dstar_dau2, *b_dstar_dau3; 
@@ -58,6 +61,7 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   tr->Branch("d0","TClonesArray",&b_d0,32000,0);
   tr->Branch("d0_dau1","TClonesArray",&b_d0_dau1,32000,0);
   tr->Branch("d0_dau2","TClonesArray",&b_d0_dau2,32000,0);
+  tr->Branch("d0_vProb","std::vector<float>",&b_d0_vProb);
 
   tr->Branch("d0_true","std::vector<bool>",&b_d0_true);
   tr->Branch("d0_fit","std::vector<bool>",&b_d0_fit);
@@ -89,10 +93,10 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   tr->Branch("dstar_dca3","std::vector<float>",&b_dstar_dca3);
 
   tr->Branch("dstar_dau1_q","std::vector<float>",&b_dstar_dau1_q);
-
   tr->Branch("dstar_dau2_q","std::vector<float>",&b_dstar_dau2_q);
-
   tr->Branch("dstar_dau3_q","std::vector<float>",&b_dstar_dau3_q);
+  tr->Branch("dstar_vProb","std::vector<float>",&b_dstar_vProb);
+  tr->Branch("dstar_diffMass","std::vector<float>",&b_dstar_diffMass);
 
 }
 
@@ -186,6 +190,8 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
   TClonesArray& br_dstar_dau1 = *b_dstar_dau1;
   TClonesArray& br_dstar_dau2 = *b_dstar_dau2;
   TClonesArray& br_dstar_dau3 = *b_dstar_dau3;
+  
+  TLorentzVector vecDauAll, vecDau12;
 
   for( auto& x : *d0s) {
     d0_count++; 
@@ -197,12 +203,13 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
     b_d0_dca.push_back( x.dca());
 
     double d0_vProb = x.vProb();
+	b_d0_vProb.push_back(d0_vProb);
+
     if ( abs( d0_vProb ) > 1e-5 ) {
       b_d0_fit.push_back(true);
       b_d0_L3D.push_back( x.l3D());
       b_d0_LXY.push_back( x.lxy());
-    }
-    else {
+    } else {
       b_d0_fit.push_back(false);
       b_d0_L3D.push_back( -9 );
       b_d0_LXY.push_back( -9 );
@@ -227,6 +234,7 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
   }
   for( auto& x : *dstars) {
     dstar_count++;
+
     auto dstar_tlv = ToTLorentzVector(x);
     new( br_dstar[dstar_count]) TLorentzVector( dstar_tlv );
     new( br_dstar_dau1[dstar_count]) TLorentzVector(ToTLorentzVector(*(x.daughter(0)))); 
@@ -238,16 +246,18 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
     b_dstar_dca3.push_back( x.dca(2));
 
     double dstar_vProb = x.vProb();
+	b_dstar_vProb.push_back(dstar_vProb);
+	
     if ( abs( dstar_vProb) > 1e-5) {
       b_dstar_fit.push_back(true);
       b_dstar_L3D.push_back( x.l3D());
       b_dstar_LXY.push_back( x.lxy());
-    }
-    else {
+    } else {
       b_dstar_fit.push_back(false);
       b_dstar_L3D.push_back( -9 );
       b_dstar_LXY.push_back( -9 );
     }
+	
     if ( runOnMC ) {
 		shared_ptr<TLorentzVector> genMatched = mcMatching( gen_dstars, dstar_tlv ); 
 		if ( genMatched != nullptr) {
@@ -262,13 +272,22 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
 		}
 	}
 
-
     b_dstar_dau1_q.push_back  ( x.daughter(0)->charge());
-
     b_dstar_dau2_q.push_back  ( x.daughter(1)->charge());
-
     b_dstar_dau3_q.push_back  ( x.daughter(2)->charge());
+
+	vecDauAll = ToTLorentzVector(*(x.daughter(0))) + 
+		ToTLorentzVector(*(x.daughter(1))) + 
+		ToTLorentzVector(*(x.daughter(2)));
+
+	vecDau12 = ToTLorentzVector(*(x.daughter(0))) + 
+		ToTLorentzVector(*(x.daughter(1)));
+	
+	b_dstar_diffMass.push_back(vecDauAll.M() - vecDau12.M());
+
   }
+  
+  
 
 }
 
@@ -285,11 +304,13 @@ void CATDstarAnalyzer::resetBrCustom()
 
   b_d0_dau1_q.clear();
   b_d0_dau2_q.clear();
+  b_d0_vProb.clear();
 
   b_dstar_dau1_q.clear();
   b_dstar_dau2_q.clear();
   b_dstar_dau3_q.clear();
-
+  b_dstar_vProb.clear();
+  b_dstar_diffMass.clear();
 
 }
 

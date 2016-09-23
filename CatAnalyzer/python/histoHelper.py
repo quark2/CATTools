@@ -158,14 +158,20 @@ def drawTH1(name, cmsLumi, mclist, data, x_name, y_name, doLog=False, doRatio=Tr
                         
     hratio.Divide(data,hratio,1.,1.,"B")
 
-    tdrstyle.setTDRStyle()
+    dNumEntriesData = data.GetEntries()
 
+    tdrstyle.setTDRStyle()
     setDefTH1Style(data, x_name, y_name)
-    data.SetMaximum(data.GetMaximum()*1.8)
+
+    dMax = data.GetMaximum()
+    if dNumEntriesData == 0 : 
+        dMax = hs.GetMaximum()
+
+    data.SetMaximum(dMax*1.8)
     if doLog:
         #data.SetMaximum(10**7)
         #data.SetMinimum(10**-3)
-        data.SetMaximum(data.GetMaximum()*100)
+        data.SetMaximum(dMax*100)
     else:
         data.GetYaxis().SetTitleSize(0.04)
         data.GetYaxis().SetLabelSize(0.024)

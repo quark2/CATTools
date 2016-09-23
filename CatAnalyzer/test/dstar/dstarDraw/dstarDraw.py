@@ -80,7 +80,8 @@ tname = "cattree/nom"
 #cut define
 stepch_tcut = 'step>=%i'%(step)
 if channel != 0: stepch_tcut = '%s&&channel==%i'%(stepch_tcut,channel)
-tcut = '(%s&&%s)*(%s)'%(stepch_tcut,cut,weight)
+tcutonly = '%s&&%s'%(stepch_tcut,cut)
+tcut = '(%s)*(%s)'%(tcutonly,weight)
 
 #if   channel == 1: 
 #  ttother_tcut = "!(gen_partonChannel==2 && ((gen_partonMode1==1 && gen_partonMode2==2) || (gen_partonMode1==2 && gen_partonMode2==1)))"
@@ -121,18 +122,19 @@ for i, mcname in enumerate(mcfilelist):
   tfile = ROOT.TFile(rfname)
   wentries = tfile.Get("cattree/nevents").Integral()
   scale = scale/wentries
-    
+
   mchist = makeTH1(rfname, tname, title, binning, plotvar, tcut, scale)
   mchist.SetLineColor(colour)
   mchist.SetFillColor(colour)
   mchistList.append(mchist)
+ 
   if 'TT' in mcname:
     if len(binning) == 3:
       ttothershist = ROOT.TH1D("name", title+' others', binning[0], binning[1], binning[2])
     else:
       ttothershist = ROOT.TH1D("name", title+' others', len(binning)-1, array.array('f', binning))
-    dstar_tcut = "(dstar_relPtTrue<0.1&&dstar_dRTrue<0.1&&d0_dRTrue<0.1&&d0_relPtTrue<0.1&&abs(dstar_isFromTop)==6)"
-    d0_tcut = "((d0_relPtTrue<0.1&&d0_dRTrue<0.1&&abs(d0_isFromTop)==6)&&!(dstar_relPtTrue<0.1&&dstar_dRTrue<0.1&&abs(dstar_isFromTop)==6))"
+    dstar_tcut = "((%s)&&abs(dstar_relPtTrue)<0.1&&abs(dstar_dRTrue)<0.1&&abs(d0_dRTrue)<0.1&&abs(d0_relPtTrue)<0.1)*(%s)"%(tcutonly,weight)
+    d0_tcut = "((%s)&&(abs(d0_relPtTrue)<0.1&&abs(d0_dRTrue)<0.1)&&!(abs(dstar_relPtTrue)<0.1&&abs(dstar_dRTrue)<0.1))*(%s)"%(tcutonly,weight)
     d0_true_hist = makeTH1(rfname, tname, title+' D0 Signal', binning, plotvar, d0_tcut, scale)
     dstar_true_hist = makeTH1(rfname, tname, title+' D* Signal', binning, plotvar, dstar_tcut, scale)
     #ttddothershist.Add(ttothers)
