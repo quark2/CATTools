@@ -1,6 +1,6 @@
 #!/bin/bash
 eval `scramv1 runtime -sh`
-for step in {1,5} 
+for step in {1,2,3,4,5} 
 do
 ./dstarDraw.py -s $step -b [60,20,320] -p dilep.M\(\) -x 'M(ll) [GeV/c^{2}]' -d -o > tmp &
 ./dstarDraw.py -s $step -b [10,0,10] -p njet -x 'Jet Multiplicity' -d -o > tmp &
