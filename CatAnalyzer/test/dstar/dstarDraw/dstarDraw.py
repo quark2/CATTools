@@ -7,7 +7,7 @@ ROOT.gROOT.SetBatch(True)
 dstarDraw.py -a 1 -s 1 -c 'tri==1&&filtered==1' -b [40,0,40] -p nvertex -x 'no. vertex' &
 dstarDraw.py -a 1 -s 1 -b [100,-3,3] -p lep1_eta,lep2_eta -x '#eta' &
 '''
-datalumi = 8.54 # Run2016 B & C
+datalumi = 6.238 # Run2016 B & C, v8-0-0 --- it is needed to be upgraded to v8-0-1
 CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
 datalumi = datalumi*1000 # due to fb
 CMS_lumi.extraText   = "Private work"
@@ -15,7 +15,7 @@ mcfilelist = ['TT_powheg', 'WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW',
 rdfilelist = ['MuonEG_Run2016','DoubleEG_Run2016','DoubleMuon_Run2016']
 #rootfileDir = "/xrootd/store/user/tt8888tt/v763_desy/TtbarDiLeptonAnalyzer_"
 #rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
-rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass/cattree_"
+rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092601/cattree_"
 channel_name = ['Combined', 'MuEl', 'ElEl', 'MuMu']
 
 datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json" % os.environ['CMSSW_BASE']))
@@ -130,9 +130,9 @@ for i, mcname in enumerate(mcfilelist):
  
   if 'TT' in mcname:
     if len(binning) == 3:
-      ttothershist = ROOT.TH1D("name", title+' others', binning[0], binning[1], binning[2])
+      ttothershist = ROOT.TH1D("name_others", title+' others', binning[0], binning[1], binning[2])
     else:
-      ttothershist = ROOT.TH1D("name", title+' others', len(binning)-1, array.array('f', binning))
+      ttothershist = ROOT.TH1D("name_others", title+' others', len(binning)-1, array.array('f', binning))
     dstar_tcut = "((%s)&&abs(dstar_relPtTrue)<0.1&&abs(dstar_dRTrue)<0.1&&abs(d0_dRTrue)<0.1&&abs(d0_relPtTrue)<0.1)*(%s)"%(tcutonly,weight)
     d0_tcut = "((%s)&&(abs(d0_relPtTrue)<0.1&&abs(d0_dRTrue)<0.1)&&!(abs(dstar_relPtTrue)<0.1&&abs(dstar_dRTrue)<0.1))*(%s)"%(tcutonly,weight)
     d0_true_hist = makeTH1(rfname, tname, title+' D0 Signal', binning, plotvar, d0_tcut, scale)
@@ -150,9 +150,9 @@ for i, mcname in enumerate(mcfilelist):
 
 #data histo
 if len(binning) == 3:
-  rdhist = ROOT.TH1D("name", title, binning[0], binning[1], binning[2])
+  rdhist = ROOT.TH1D("name_data", title, binning[0], binning[1], binning[2])
 else:
-  rdhist = ROOT.TH1D("name", title, len(binning)-1, array.array('f', binning))
+  rdhist = ROOT.TH1D("name_data", title, len(binning)-1, array.array('f', binning))
 for i, rdfile in enumerate(rdfilelist):
   if channel != 0 and i + 1 != channel : continue
   rfname = rootfileDir + rdfile +".root"
