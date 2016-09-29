@@ -27,6 +27,9 @@ class CATDstarAnalyzer : public dileptonCommon {
     std::vector<float> b_d0_dau2_q;
     std::vector<float> b_d0_vProb;
 
+    std::vector<float> b_d0_lepSV_lowM1;
+    std::vector<float> b_d0_lepSV_dRM1;
+
     std::vector<bool> b_dstar_true, b_dstar_fit;
     //std::vector<float> b_dstar_pt, b_dstar_eta, b_dstar_phi, b_dstar_m;
     std::vector<float> b_dstar_q, b_dstar_LXY, b_dstar_L3D, b_dstar_dRTrue, b_dstar_relPtTrue, b_dstar_dca, b_dstar_dca2, b_dstar_dca3;
@@ -35,6 +38,11 @@ class CATDstarAnalyzer : public dileptonCommon {
     std::vector<float> b_dstar_dau3_q;
     std::vector<float> b_dstar_vProb;
     std::vector<float> b_dstar_diffMass;
+
+    std::vector<float> b_dstar_lepSV_lowM1;
+    std::vector<float> b_dstar_lepSV_dRM1;
+    std::vector<float> b_dstar_lepSV_correctM;
+    std::vector<float> b_dstar_opCharge_M;
 
     TClonesArray *b_d0,    *b_d0_dau1,    *b_d0_dau2; 
     TClonesArray *b_dstar, *b_dstar_dau1, *b_dstar_dau2, *b_dstar_dau3; 
@@ -73,8 +81,10 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   tr->Branch("d0_dca","std::vector<float>",&b_d0_dca);
 
   tr->Branch("d0_dau1_q","std::vector<float>",&b_d0_dau1_q);
-
   tr->Branch("d0_dau2_q","std::vector<float>",&b_d0_dau2_q);
+  
+  tr->Branch("d0_lepSV_lowM1","std::vector<float>",&b_d0_lepSV_lowM1);
+  tr->Branch("d0_lepSV_dRM1","std::vector<float>",&b_d0_lepSV_dRM1);
 
 
   tr->Branch("dstar",    "TClonesArray",&b_dstar    ,32000,0);
@@ -97,6 +107,11 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   tr->Branch("dstar_dau3_q","std::vector<float>",&b_dstar_dau3_q);
   tr->Branch("dstar_vProb","std::vector<float>",&b_dstar_vProb);
   tr->Branch("dstar_diffMass","std::vector<float>",&b_dstar_diffMass);
+  
+  tr->Branch("dstar_lepSV_lowM1","std::vector<float>",&b_dstar_lepSV_lowM1);
+  tr->Branch("dstar_lepSV_dRM1","std::vector<float>",&b_dstar_lepSV_dRM1);
+  tr->Branch("dstar_lepSV_correctM1","std::vector<float>",&b_dstar_lepSV_correctM);
+  tr->Branch("dstar_opCharge_M","std::vector<float>",&b_dstar_opCharge_M);
 
 }
 
@@ -306,13 +321,23 @@ void CATDstarAnalyzer::resetBrCustom()
   b_d0_dau2_q.clear();
   b_d0_vProb.clear();
 
+  b_d0_lepSV_lowM1.clear();
+  b_d0_lepSV_dRM1.clear();
+
   b_dstar_dau1_q.clear();
   b_dstar_dau2_q.clear();
   b_dstar_dau3_q.clear();
   b_dstar_vProb.clear();
   b_dstar_diffMass.clear();
 
+  b_dstar_lepSV_lowM1.clear();
+  b_dstar_lepSV_dRM1.clear();
+  b_dstar_lepSV_correctM.clear();
+  b_dstar_opCharge_M.clear();
+
 }
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(CATDstarAnalyzer);
+
+
