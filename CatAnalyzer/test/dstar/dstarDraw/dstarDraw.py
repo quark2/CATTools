@@ -7,7 +7,7 @@ ROOT.gROOT.SetBatch(True)
 dstarDraw.py -a 1 -s 1 -c 'tri==1&&filtered==1' -b [40,0,40] -p nvertex -x 'no. vertex' &
 dstarDraw.py -a 1 -s 1 -b [100,-3,3] -p lep1_eta,lep2_eta -x '#eta' &
 '''
-datalumi = 6.238 # Run2016 B & C, v8-0-0 --- it is needed to be upgraded to v8-0-1
+datalumi = 15.92 # Run2016 B & C & D & E, v8-0-1
 CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
 datalumi = datalumi*1000 # due to fb
 CMS_lumi.extraText   = "Private work"
@@ -28,6 +28,8 @@ datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json
 ###############################################################################
 
 #defalts
+#treename = 'nom'
+treename = 'nom'
 step = 1
 channel = 3
 cut = 'tri!=0&&filtered==1'
@@ -42,7 +44,7 @@ binNormalize = False
 suffix = ''
 #get input
 try:
-    opts, args = getopt.getopt(sys.argv[1:],"hdnoc:w:b:p:x:y:a:s:f:",["binNormalize","overflow","cut","weight","binning","plotvar","x_name","y_name","dolog","channel","step","suffix"])
+    opts, args = getopt.getopt(sys.argv[1:],"hdnot:c:w:b:p:x:y:a:s:f:",["binNormalize","overflow","treename","cut","weight","binning","plotvar","x_name","y_name","dolog","channel","step","suffix"])
 except getopt.GetoptError:          
     print 'Usage : ./topDraw.py -c <cut> -w <weight> -b <binning> -p <plotvar> -x <x_name> -y <y_name> -d <dolog> -f <suffix>'
     sys.exit(2)
@@ -50,6 +52,8 @@ for opt, arg in opts:
     if opt == '-h':
         print 'Usage : ./topDraw.py -c <cut> -w <weight> -b <binning> -p <plotvar> -x <x_name> -y <y_name> -d <dolog> -f <suffix>'
         sys.exit()
+    elif opt in ("-t", "--treename"):
+        treename = arg
     elif opt in ("-c", "--cut"):
         cut = arg
     elif opt in ("-a", "--channel"):
@@ -75,7 +79,7 @@ for opt, arg in opts:
     elif opt in ("-f", "--suffix"):
         suffix = "_"+arg
 
-tname = "cattree/nom"
+tname = "cattree/%s"%(treename)
 
 #cut define
 stepch_tcut = 'step>=%i'%(step)
@@ -185,7 +189,7 @@ if binNormalize and len(binning)!=3:
 var = plotvar.split(',')[0]
 #var = ''.join(i for i in var if not i.isdigit())
 var = ''.join(i for i in var )
-outfile = "Dilepton_%s_s%d%s.png"%(var,step,suffix)
+outfile = "Dilepton_%s_%s_s%d%s"%(treename,var,step,suffix)
 drawTH1(outfile, CMS_lumi, mchistList, rdhist, x_name, y_name, dolog)
 print outfile
 

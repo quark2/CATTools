@@ -5,15 +5,17 @@ import DYestimation
 ROOT.gROOT.SetBatch(True)
 
 
-datalumi = 2.17
+datalumi = 15.92 # Run2016 B & C & D & E, v8-0-1
 CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
 datalumi = datalumi*1000 # due to fb
 
-topMassList = ['TT_powheg_mtop1665','TT_powheg_mtop1695','TT_powheg_mtop1715','TT_powheg_mtop1735','TT_powheg_mtop1755','TT_powheg_mtop1785','TT_powheg']
+#topMassList = ['TT_powheg_mtop1665','TT_powheg_mtop1695','TT_powheg_mtop1715','TT_powheg_mtop1735','TT_powheg_mtop1755','TT_powheg_mtop1785','TT_powheg']
+topMassList = ['TT_powheg_mtop1695','TT_powheg_mtop1755','TT_powheg'] # it will be filled fully
 mcfilelist = ['WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW', 'WZ', 'DYJets', 'DYJets_10to50']
-rdfilelist = ['MuonEG_Run2015','DoubleEG_Run2015','DoubleMuon_Run2015']
+rdfilelist = ['MuonEG_Run2016','DoubleEG_Run2016','DoubleMuon_Run2016']
 #rootfileDir = "/xrootd/store/user/tt8888tt/v763_desy/TtbarDiLeptonAnalyzer_"
-rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
+#rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
+rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092601/cattree_"
 channel_name = ['Combined', 'MuEl', 'ElEl', 'MuMu']
 
 datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json" % os.environ['CMSSW_BASE']))
@@ -187,9 +189,9 @@ for topMass in topMassList :
 
 #output = ROOT.TFile.Open("data_%s.root"%(plotvar),"RECREATE")
 if len(binning) == 3:
-  rdhist = ROOT.TH1D("Run2015", "RealData in 2015", binning[0], binning[1], binning[2])
+  rdhist = ROOT.TH1D("Run2016", "RealData in 2016", binning[0], binning[1], binning[2])
 else:
-  rdhist = ROOT.TH1D("Run2015", "RealData in 2015", len(binning)-1, array.array('f', binning))
+  rdhist = ROOT.TH1D("Run2016", "RealData in 2016", len(binning)-1, array.array('f', binning))
 for i, rdfile in enumerate(rdfilelist):
   rfname = rootfileDir + rdfile +".root"
   rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
