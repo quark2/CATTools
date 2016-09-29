@@ -41,8 +41,8 @@ class CATDstarAnalyzer : public dileptonCommon {
 
     std::vector<float> b_dstar_lepSV_lowM1;
     std::vector<float> b_dstar_lepSV_dRM1;
-    std::vector<float> b_dstar_lepSV_correctM;
     std::vector<float> b_dstar_opCharge_M;
+    std::vector<float> b_dstar_lepSV_correctM;
 
     TClonesArray *b_d0,    *b_d0_dau1,    *b_d0_dau2; 
     TClonesArray *b_dstar, *b_dstar_dau1, *b_dstar_dau2, *b_dstar_dau3; 
@@ -54,6 +54,33 @@ class CATDstarAnalyzer : public dileptonCommon {
     double matchingDeltaR_;
 
 };
+
+
+int isFromtop( const reco::GenParticle& p){
+  int nIDMother;
+  
+  int nTopMother = 0;
+
+  //  string pt = Form("%f", p.pt());
+  //  string pdgid = Form("%i",p.pdgId());
+  const reco::GenParticle* mother = dynamic_cast<const reco::GenParticle*>(p.mother());
+  while( mother != nullptr ) {
+    //    string id = Form("%i", mother->pdgId());
+    //    string mopt = Form("%f", mother->pt());
+    nIDMother = mother->pdgId();
+    
+    if( abs(nIDMother) == 6 ) {
+      nTopMother = nIDMother;
+      break;
+    }
+
+    mother = dynamic_cast<const reco::GenParticle*>(mother->mother());
+  }
+
+  return nTopMother;
+}
+
+
 //
 // constructors and destructor
 void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
@@ -206,7 +233,14 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
   TClonesArray& br_dstar_dau2 = *b_dstar_dau2;
   TClonesArray& br_dstar_dau3 = *b_dstar_dau3;
   
-  TLorentzVector vecDauAll, vecDau12;
+  TLorentzVector vecDMMom, vecDau12;
+  float fQDau, fQDM;
+  
+  TLorentzVector vecSumDMLep1, vecSumDMLep2;
+  float fMDMLep1, fMDMLep2;
+  
+  float fDeltaEta, fDeltaPhi;
+  float fSqrtdRMLep1, fSqrtdRMLep2;
 
   for( auto& x : *d0s) {
     d0_count++; 
@@ -218,7 +252,7 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
     b_d0_dca.push_back( x.dca());
 
     double d0_vProb = x.vProb();
-	b_d0_vProb.push_back(d0_vProb);
+    b_d0_vProb.push_back(d0_vProb);
 
     if ( abs( d0_vProb ) > 1e-5 ) {
       b_d0_fit.push_back(true);
@@ -231,21 +265,47 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
     }        
 
     if ( runOnMC ) {
-		shared_ptr<TLorentzVector> genMatched = mcMatching( gen_d0s, d0_tlv ); 
-		if ( genMatched != nullptr) {
-		  b_d0_true.push_back( true );
-		  b_d0_dRTrue.push_back( genMatched->DeltaR( d0_tlv ));
-		  b_d0_relPtTrue.push_back( (genMatched->Pt()- d0_tlv.Pt())/genMatched->Pt());
-		}
-		else {
-		  b_d0_true.push_back( false );
-		  b_d0_dRTrue.push_back( -9);
-		  b_d0_relPtTrue.push_back(-9);
-		}
-	}
+        shared_ptr<TLorentzVector> genMatched = mcMatching( gen_d0s, d0_tlv ); 
+        if ( genMatched != nullptr) {
+          b_d0_true.push_back( true );
+          b_d0_dRTrue.push_back( genMatched->DeltaR( d0_tlv ));
+          b_d0_relPtTrue.push_back( (genMatched->Pt()- d0_tlv.Pt())/genMatched->Pt());
+        }
+        else {
+          b_d0_true.push_back( false );
+          b_d0_dRTrue.push_back( -9);
+          b_d0_relPtTrue.push_back(-9);
+        }
+    }
 
-    b_d0_dau1_q.push_back  ( x.daughter(0)->charge());
-    b_d0_dau2_q.push_back  ( x.daughter(1)->charge());
+    fQDM = 0;
+
+    fQDau = x.daughter(0)->charge();
+    b_dstar_dau1_q.push_back(fQDau);
+    fQDM += fQDau;
+
+    fQDau = x.daughter(1)->charge();
+    b_dstar_dau2_q.push_back(fQDau);
+    fQDM += fQDau;
+    
+    vecDMMom = ToTLorentzVector(*(x.daughter(0))) + ToTLorentzVector(*(x.daughter(1)));
+    
+    vecSumDMLep1 = b_lep1 + vecDMMom;
+    vecSumDMLep2 = b_lep2 + vecDMMom;
+    
+    fMDMLep1 = vecSumDMLep1.M();
+    fMDMLep2 = vecSumDMLep2.M();
+    
+    fDeltaEta = b_lep1.Eta() - vecDMMom.Eta();
+    fDeltaPhi = b_lep1.Phi() - vecDMMom.Phi();
+    fSqrtdRMLep1 = fDeltaEta * fDeltaEta + fDeltaPhi * fDeltaPhi;
+    
+    fDeltaEta = b_lep2.Eta() - vecDMMom.Eta();
+    fDeltaPhi = b_lep2.Phi() - vecDMMom.Phi();
+    fSqrtdRMLep2 = fDeltaEta * fDeltaEta + fDeltaPhi * fDeltaPhi;
+    
+    b_d0_lepSV_lowM1.push_back(( fMDMLep1 >= fMDMLep2 ? fMDMLep1 : fMDMLep2 ));
+    b_d0_lepSV_dRM1.push_back(( fSqrtdRMLep1 >= fSqrtdRMLep2 ? fMDMLep1 : fMDMLep2 ));
   }
   for( auto& x : *dstars) {
     dstar_count++;
@@ -261,7 +321,7 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
     b_dstar_dca3.push_back( x.dca(2));
 
     double dstar_vProb = x.vProb();
-	b_dstar_vProb.push_back(dstar_vProb);
+    b_dstar_vProb.push_back(dstar_vProb);
 	
     if ( abs( dstar_vProb) > 1e-5) {
       b_dstar_fit.push_back(true);
@@ -272,34 +332,65 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
       b_dstar_L3D.push_back( -9 );
       b_dstar_LXY.push_back( -9 );
     }
-	
+
     if ( runOnMC ) {
-		shared_ptr<TLorentzVector> genMatched = mcMatching( gen_dstars, dstar_tlv ); 
-		if ( genMatched != nullptr) {
-		  b_dstar_true.push_back( true );
-		  b_dstar_dRTrue.push_back( genMatched->DeltaR( dstar_tlv));
-		  b_dstar_relPtTrue.push_back( (genMatched->Pt()- dstar_tlv.Pt())/genMatched->Pt());
-		}
-		else {
-		  b_dstar_true.push_back( false );
-		  b_dstar_dRTrue.push_back( -9);
-		  b_dstar_relPtTrue.push_back(-9);
-		}
-	}
+        shared_ptr<TLorentzVector> genMatched = mcMatching( gen_dstars, dstar_tlv ); 
+        if ( genMatched != nullptr) {
+          b_dstar_true.push_back( true );
+          b_dstar_dRTrue.push_back( genMatched->DeltaR( dstar_tlv));
+          b_dstar_relPtTrue.push_back( (genMatched->Pt()- dstar_tlv.Pt())/genMatched->Pt());
+        }
+        else {
+          b_dstar_true.push_back( false );
+          b_dstar_dRTrue.push_back( -9);
+          b_dstar_relPtTrue.push_back(-9);
+        }
+    }
 
-    b_dstar_dau1_q.push_back  ( x.daughter(0)->charge());
-    b_dstar_dau2_q.push_back  ( x.daughter(1)->charge());
-    b_dstar_dau3_q.push_back  ( x.daughter(2)->charge());
+    fQDM = 0;
 
-	vecDauAll = ToTLorentzVector(*(x.daughter(0))) + 
-		ToTLorentzVector(*(x.daughter(1))) + 
-		ToTLorentzVector(*(x.daughter(2)));
+    fQDau = x.daughter(0)->charge();
+    b_dstar_dau1_q.push_back(fQDau);
+    fQDM += fQDau;
 
-	vecDau12 = ToTLorentzVector(*(x.daughter(0))) + 
-		ToTLorentzVector(*(x.daughter(1)));
+    fQDau = x.daughter(1)->charge();
+    b_dstar_dau2_q.push_back(fQDau);
+    fQDM += fQDau;
+
+    fQDau = x.daughter(2)->charge();
+    b_dstar_dau3_q.push_back(fQDau);
+    fQDM += fQDau;
+
+    vecDMMom = ToTLorentzVector(*(x.daughter(0))) + 
+        ToTLorentzVector(*(x.daughter(1))) + 
+        ToTLorentzVector(*(x.daughter(2)));
+
+    vecDau12 = ToTLorentzVector(*(x.daughter(0))) + 
+        ToTLorentzVector(*(x.daughter(1)));
 	
-	b_dstar_diffMass.push_back(vecDauAll.M() - vecDau12.M());
-
+    b_dstar_diffMass.push_back(vecDMMom.M() - vecDau12.M());
+    
+    vecSumDMLep1 = b_lep1 + vecDMMom;
+    vecSumDMLep2 = b_lep2 + vecDMMom;
+    
+    fMDMLep1 = vecSumDMLep1.M();
+    fMDMLep2 = vecSumDMLep2.M();
+    
+    fDeltaEta = b_lep1.Eta() - vecDMMom.Eta();
+    fDeltaPhi = b_lep1.Phi() - vecDMMom.Phi();
+    fSqrtdRMLep1 = fDeltaEta * fDeltaEta + fDeltaPhi * fDeltaPhi;
+    
+    fDeltaEta = b_lep2.Eta() - vecDMMom.Eta();
+    fDeltaPhi = b_lep2.Phi() - vecDMMom.Phi();
+    fSqrtdRMLep2 = fDeltaEta * fDeltaEta + fDeltaPhi * fDeltaPhi;
+    
+    b_dstar_lepSV_lowM1.push_back(( fMDMLep1 >= fMDMLep2 ? fMDMLep1 : fMDMLep2 ));
+    b_dstar_lepSV_dRM1.push_back(( fSqrtdRMLep1 >= fSqrtdRMLep2 ? fMDMLep1 : fMDMLep2 ));
+    b_dstar_opCharge_M.push_back(( fQDM * b_lep1_pid <= 0.0 ? fMDMLep1 : fMDMLep2 ));
+    
+    if ( runOnMC ) {
+        
+    }
   }
   
   
