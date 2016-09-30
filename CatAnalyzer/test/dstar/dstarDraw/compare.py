@@ -14,7 +14,7 @@ datalumi = datalumi*1000 # due to fb
 mcfilelist = ['TT_powheg', 'WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW', 'WZ', 'DYJets', 'DYJets_10to50']
 #rdfilelist = ['MuonEG_Run2016','DoubleEG_Run2016','DoubleMuon_Run2016']
 #rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
-rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092601/cattree_"
+rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092901/cattree_"
 #channel_name = ['Combined', 'MuEl', 'ElEl', 'MuMu']
 
 datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json" % os.environ['CMSSW_BASE']))

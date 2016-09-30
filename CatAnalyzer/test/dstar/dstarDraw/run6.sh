@@ -13,16 +13,16 @@ cut_dstar_noCut='abs(dstar_diffMass-0.145)<0.01'
 
 ./massPlot.py -c "${cut_dstar}"  -s 5 -b [30,0,120] -p 'dstar_lepSV_lowM1' -x 'M_{l+D^{*}}'  & 
 ./massPlot.py -c "${cut_dstar}"  -s 5 -b [30,0,120] -p 'dstar_lepSV_dRM1' -x 'M_{l+D^{*}}'  &
-./massPlot.py -c "${cut_dstar}"  -s 5 -b [30,0,120] -p 'dstar_lepSV_correctM' -x 'M_{l+D^{*}}'  &
+./massPlot.py -c "${cut_dstar}"  -s 5 -b [30,0,120] -p 'dstar_lepSV_correctM1' -x 'M_{l+D^{*}}'  &
 ./massPlot.py -c "${cut_dstar}"  -s 5 -b [30,0,120] -p 'dstar_opCharge_M' -x 'M_{l+D^{*}}'  &
 
 ./massPlot.py -c "${cut_dstar_nomassConstain}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_lowM1' -x 'M_{l+D^{*}}' -f 'noMasscut' & 
 ./massPlot.py -c "${cut_dstar_nomassConstain}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_dRM1' -x 'M_{l+D^{*}}' -f 'noMasscut' &
-./massPlot.py -c "${cut_dstar_nomassConstain}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_correctM' -x 'M_{l+D^{*}}' -f 'noMasscut' &
+./massPlot.py -c "${cut_dstar_nomassConstain}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_correctM1' -x 'M_{l+D^{*}}' -f 'noMasscut' &
 ./massPlot.py -c "${cut_dstar_nomassConstain}"  -s 5 -b [10,0,120] -p 'dstar_opCharge_M' -x 'M_{l+D^{*}}' -f 'noMasscut' &
 
 ./massPlot.py -c "${cut_dstar_noCut}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_lowM1' -x 'M_{l+D^{*}}' -f 'onlyMassCut' & 
 ./massPlot.py -c "${cut_dstar_noCut}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_dRM1' -x 'M_{l+D^{*}}' -f 'onlyMassCut' &
-./massPlot.py -c "${cut_dstar_noCut}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_correctM' -x 'M_{l+D^{*}}' -f 'onlyMassCut' &
+./massPlot.py -c "${cut_dstar_noCut}"  -s 5 -b [10,0,120] -p 'dstar_lepSV_correctM1' -x 'M_{l+D^{*}}' -f 'onlyMassCut' &
 ./massPlot.py -c "${cut_dstar_noCut}"  -s 5 -b [10,0,120] -p 'dstar_opCharge_M' -x 'M_{l+D^{*}}' -f 'onlyMassCut' &
 
