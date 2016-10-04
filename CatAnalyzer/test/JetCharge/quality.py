@@ -7,20 +7,18 @@ gROOT.SetBatch(True)
 
 gStyle.SetPalette(1)
 
-
-
-
-
-
 def anaTree( tree ) :
   label="reco"
   c1 = makeCanvas("quality")
-  h0 = getTH1("Efficiency of Quality ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","1")
-  h0_1 = getTH1("Efficiency of Quality ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","bjet_charge[0]*bjet_charge[1]")
+
+  cut = "lepton_charge[0]*(bjet_charge[0]-bjet_charge[1])<0"
+  h0 = getTH1("Efficiency of Quality for original ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","1")
+  h0_1 = getTH1("Efficiency of Quality for original with charge cut; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","%s"%(cut))
   h1 = getTH1("Efficiency of Quality(AND) ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","abs(bjet_partonPdgId[0])==5 && abs(bjet_partonPdgId[1])==5")
   h2 = getTH1("Efficiency of Quality(OR)  ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","abs(bjet_partonPdgId[0])==5 || abs(bjet_partonPdgId[1])==5")
-  h3 = getTH1("Efficiency of Quality(AND) ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","abs(bjet_partonPdgId[0])==5 && abs(bjet_partonPdgId[1])==5")
-  h4 = getTH1("Efficiency of Quality(OR)  ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","abs(bjet_partonPdgId[0])==5 || abs(bjet_partonPdgId[1])==5")
+  h3 = getTH1("Efficiency of Quality(AND) with chargeCut ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","%s&&(abs(bjet_partonPdgId[0])==5 && abs(bjet_partonPdgId[1])==5)"%cut)
+  h4 = getTH1("Efficiency of Quality(OR) with chargeCut  ; Quality ; Eff.",[50,0,50], tree,"pair_quality*1e5","%s&&(abs(bjet_partonPdgId[0])==5 || abs(bjet_partonPdgId[1])==5)"%cut)
+
   h1.Divide(h0)
   h1.SetLineColor(ROOT.kRed)
   h1.SetMarkerColor(ROOT.kRed)
@@ -31,6 +29,17 @@ def anaTree( tree ) :
   h2.SetMinimum(0)
   h2.Draw()
   h1.Draw("Same")
+
+  h3.Divide(h0_1)
+  h3.SetLineColor(ROOT.kMagenta)
+  h3.SetMarkerColor(ROOT.kMagenta)
+  h4.Divide(h0_1)
+  h4.SetLineColor(ROOT.kOrange)
+  h4.SetMarkerColor(ROOT.kOrange)
+  h3.Draw("Same")
+  h4.Draw("Same")
+
+
   c1.BuildLegend(0.3,0.2,0.8,0.3)
   c1.SaveAs("pair_quality.png")
 

@@ -4,8 +4,12 @@
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
 
+
 void CountEvents(const char* filename="cmskin_quality.root")
 {
+  gROOT->ProcessLine(".L tdrstyle.C");
+  gROOT->ProcessLine("setTDRStyle();");
+  std::cout<<"gStyle name : "<<gStyle->GetName()<<std::endl;
   // Variables used to store the data
   //Int_t totalSize = 0; // Sum of data size (in bytes) of all events
 
@@ -17,9 +21,9 @@ void CountEvents(const char* filename="cmskin_quality.root")
     return;
   }
   int xmax = 1000;
-  TProfile* h1 = new TProfile("isJet1_bjet_all","isbjet1_all",100,1,xmax);
+  TProfile* h1 = new TProfile("isJet1_bjet_all","Efficiency of bjet ; Quality ; Eff. of bjet",100,1,xmax);
   TProfile* h2 = new TProfile("isJet2_bjet_all","isbjet1_all",100,1,xmax);
-  TProfile* h3 = new TProfile("isJet1or2_bjet_all","isbjet1_all",100,1,xmax);
+  TProfile* h3 = new TProfile("isJet1or2_bjet_all","Efficiency of bjet1 or bjet2; Quality ; Eff. of bjet1 || bjet2",100,1,xmax);
   TProfile* h4 = new TProfile("isJet1and2_bjet_all","isbjet1_all",100,1,xmax);
   TProfile* h5 = new TProfile("isJet1_bjet_qcut","isbjet1_qcut",100,1,xmax);
   TProfile* h6 = new TProfile("isJet2_bjet_qcut","isbjet1_qcut",100,1,xmax);
@@ -108,5 +112,18 @@ void CountEvents(const char* filename="cmskin_quality.root")
   h12_1->Draw("same");
   c4->SaveAs("pdgId_jet2_all_vs_qcut.png");
 
+  TCanvas* c5 = new TCanvas("pdgId_jet1_norm","pdgId_jet1_norm");
+  h11->Scale(1./h11->GetEntries());
+  h12->Scale(1./h12->GetEntries());
+  h11->Draw();
+  h12->Draw("same");
+  c5->SaveAs("pdgId_jet1_all_vs_qcut_norm.png");
+
+  TCanvas* c6 = new TCanvas("pdgId_jet2","pdgId_jet2");
+  h11_1->Scale(1./h11_1->GetEntries());
+  h12_1->Scale(1./h12_1->GetEntries());
+  h11_1->Draw();
+  h12_1->Draw("same");
+  c6->SaveAs("pdgId_jet2_all_vs_qcut_norm.png");
 }
 

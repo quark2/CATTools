@@ -22,7 +22,13 @@ using namespace cat;
 // constructors and destructor
 //
 
-
+int countChargeTrack(cat::Jet jet) {
+  int count=0;
+  for(unsigned int i=0 ; i< jet.numberOfDaughters(); ++i) {
+    if ( abs(jet.daughter(i)->charge() ) !=0 ) count++;
+  }
+  return count;
+}
 
 int mcTruthJet(cat::JetCollection jets, reco::LeafCandidate bjet) {
   double deltaR= 999.;

@@ -76,7 +76,7 @@ process.eventsTTLL.filters.ignoreTrig = cms.bool(True)
 
 process.ttbarDileptonKin.algo = process.ttbarDileptonKinAlgoPSetCMSKin
 
-process.ttbarDileptonKin.applyJetCharge = cms.double(1.1)
+process.ttbarDileptonKin.applyJetCharge = cms.double(1.0)
 
 if ( options.isTT ) : 
   print "This is TT Samples. Run agen and filter parto."

@@ -37,6 +37,8 @@ public:
     ttree_->Branch("lep_charge", &(lepton_charge_[0]),"lep_charge[2]/I");
     ttree_->Branch("bjet_charge_all", &(bjet_charge_all_[0]),"bjet_charge_all[2]/I");
     ttree_->Branch("bjet_charge_qcut", &(bjet_charge_qcut_[0]),"bjet_charge_qcut[2]/I");
+    ttree_->Branch("bjet_ntracks_all", &(bjet_ntracks_all_[0]),"bjet_ntracks_all[2]/I");
+    ttree_->Branch("bjet_ntracks_qcut", &(bjet_ntracks_qcut_[0]),"bjet_ntracks_qcut[2]/I");
     ttree_->Branch("bjet_partonPdgId_all", &(bjet_partonPdgId_all_[0]),"bjet_partonPdgId_all[2]/I");
     ttree_->Branch("bjet_partonPdgId_qcut", &(bjet_partonPdgId_qcut_[0]),"bjet_partonPdgId_qcut[2]/I");
     ttree_->Branch("pair_quality_all",&(quality_all_),"quality_all/D");
@@ -48,21 +50,20 @@ public:
     j2_ = TLorentzVector();
     j3_ = TLorentzVector();
     j4_ = TLorentzVector();
-    lepton_charge_[0]=-999;
-    lepton_charge_[1]=-999;
-    bjet_charge_all_[0]=-999;
-    bjet_charge_all_[1]=-999;
-    bjet_charge_qcut_[0]=-999;
-    bjet_charge_qcut_[1]=-999;
-    bjet_partonPdgId_all_[0] = 0;
-    bjet_partonPdgId_all_[1] = 0;
-    bjet_partonPdgId_qcut_[0] = 0;
-    bjet_partonPdgId_qcut_[1] = 0;
+    for ( int i= 0 ; i<2; ++i) {
+      lepton_charge_[i]=-999;
+      bjet_charge_all_[i]=-999;
+      bjet_charge_qcut_[i]=-999;
+      bjet_ntracks_all_[i] = 0;
+      bjet_ntracks_qcut_[i] = 0;
+      bjet_partonPdgId_all_[i] = 0;
+      bjet_partonPdgId_qcut_[i] = 0;
+    }
     quality_all_  = -1e9;
     quality_qcut_ = -1e9;
   }
   bool findPairUsingJetCharge( int lep1_charge, cat::Jet j1, cat::Jet j2 ) {
-    if ( lep1_charge*(j1.charge() - j2.charge())<0 ) return true;
+    if ( abs(j1.charge() - j2.charge())>0 ) return true;
     else return false; 
   }
 
@@ -90,6 +91,8 @@ private:
   int lepton_charge_[2];
   int bjet_charge_all_[2];
   int bjet_charge_qcut_[2];
+  int bjet_ntracks_all_[2];
+  int bjet_ntracks_qcut_[2];
   int bjet_partonPdgId_all_[2];
   int bjet_partonPdgId_qcut_[2];
   double quality_all_;
