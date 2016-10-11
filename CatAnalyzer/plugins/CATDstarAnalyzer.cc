@@ -29,6 +29,7 @@ class CATDstarAnalyzer : public dileptonCommon {
 
     std::vector<float> b_d0_lepSV_lowM1;
     std::vector<float> b_d0_lepSV_dRM1;
+    std::vector<float> b_d0_lepSV_correctM; // for test
 
     std::vector<bool> b_dstar_true, b_dstar_fit;
     //std::vector<float> b_dstar_pt, b_dstar_eta, b_dstar_phi, b_dstar_m;
@@ -112,6 +113,7 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   
   tr->Branch("d0_lepSV_lowM1","std::vector<float>",&b_d0_lepSV_lowM1);
   tr->Branch("d0_lepSV_dRM1","std::vector<float>",&b_d0_lepSV_dRM1);
+  tr->Branch("d0_lepSV_correctM","std::vector<float>",&b_d0_lepSV_correctM); // for test
 
 
   tr->Branch("dstar",    "TClonesArray",&b_dstar    ,32000,0);
@@ -137,8 +139,8 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   
   tr->Branch("dstar_lepSV_lowM1","std::vector<float>",&b_dstar_lepSV_lowM1);
   tr->Branch("dstar_lepSV_dRM1","std::vector<float>",&b_dstar_lepSV_dRM1);
-  tr->Branch("dstar_lepSV_correctM","std::vector<float>",&b_dstar_lepSV_correctM);
   tr->Branch("dstar_opCharge_M","std::vector<float>",&b_dstar_opCharge_M);
+  tr->Branch("dstar_lepSV_correctM","std::vector<float>",&b_dstar_lepSV_correctM);
 
 }
 
@@ -220,9 +222,22 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
   if ( runOnMC ) {
     for( const auto& aGenParticle : *mcHandle) {
       //If genParticle is D0,
-      if ( std::abs(aGenParticle.pdgId()) == 421 )
-        gen_d0s.push_back( ToTLorentzVector(aGenParticle));  
-      else if ( std::abs(aGenParticle.pdgId()) ==  413 ) {
+      if ( std::abs(aGenParticle.pdgId()) == 421 ) {
+        gen_d0s.push_back( ToTLorentzVector(aGenParticle));
+        
+        nIDMother = isFromtop(aGenParticle);
+        
+        if ( /*0 == 1 &&*/ abs(nIDMother) != 6 ) {
+            continue;
+        }
+        
+        //printf("Sign : %i\n", nIDMother * aGenParticle.pdgId() / abs(aGenParticle.pdgId()));
+        //printf("%s\n", ( aGenParticle.charge() * aGenParticle.pdgId() >= 0 ? "S" : "O" ));
+        
+        vecSumMom = ToTLorentzVector(aGenParticle) + 
+          ( nIDMother * b_lep1_pid < 0 ? b_lep1 : b_lep2 );
+        b_d0_lepSV_correctM.push_back(vecSumMom.M());
+    } else if ( std::abs(aGenParticle.pdgId()) ==  413 ) {
         gen_dstars.push_back( ToTLorentzVector(aGenParticle));
         
         nIDMother = isFromtop(aGenParticle);
@@ -434,6 +449,7 @@ void CATDstarAnalyzer::resetBrCustom()
 
   b_d0_lepSV_lowM1.clear();
   b_d0_lepSV_dRM1.clear();
+  b_d0_lepSV_correctM.clear();
 
   b_dstar_dau1_q.clear();
   b_dstar_dau2_q.clear();

@@ -2,6 +2,8 @@
 
 import os,sys
 
+strDest = "/store/user/quark2930/test2"
+
 if ( len(sys.argv) != 2) : 
   print "Wrong argument"
   sys.exit(-1)
@@ -19,7 +21,7 @@ for filename in datasetList :
   print filename
   dataset = filename.replace("dataset_","").replace(".txt","")
   print dataset
-  cmd = "create-batch --jobName samples_%s --fileList ../../data/dataset/%s --maxFiles 20 --cfg run_CATDstar_cfg.py --transferDest /store/user/quark2930/dilepton_mass_v801_16092901/%s"%(dataset,filename,dataset) 
+  cmd = "create-batch --jobName samples_%s --fileList ../../data/dataset/%s --maxFiles 20 --cfg run_CATDstar_cfg.py --transferDest %s/%s"%(dataset,filename,strDest,dataset) 
   if ( dataset.find("TT") != -1 ) :
     cmd += " --args \"isTT=True\""
   print cmd
