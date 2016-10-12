@@ -5,6 +5,19 @@ import DYestimation
 ROOT.gROOT.SetBatch(True)
 
 
+def MyGetPosMaxHist(hist, nNumBin):
+  dMaxBinCont = -1048576.0
+  nIdxBinMax = 0
+
+  for i in range(nNumBin):
+      dPointData = hist.GetBinContent(i)
+      if dMaxBinCont < dPointData: 
+          dMaxBinCont = dPointData
+          nIdxBinMax = i
+
+  return nIdxBinMax
+
+
 datalumi = 15.92 # Run2016 B & C & D & E, v8-0-1
 CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
 datalumi = datalumi*1000 # due to fb
@@ -28,6 +41,7 @@ datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json
 step = 1
 channel = 3
 cut = 'tri!=0&&filtered==1'
+# In DYJet, genweight yields negative value in histogram(!!!)
 weight = 'genweight*puweight*mueffweight*eleffweight*tri*topPtWeight'
 binning = [60, 20, 320]
 plotvar = 'll_m'
@@ -109,7 +123,10 @@ if not os.path.exists('./DYFactor.json'):
 	DYestimation.printDYFactor(rootfileDir, tname, datasets, datalumi, cut, weight, rdfilelist)# <------ This will create 'DYFactor.json' on same dir.
 dyratio=json.load(open('./DYFactor.json'))
 
-
+################################################################
+## Initializing the result root file
+################################################################
+outMassHist = ROOT.TFile.Open("invMass_%s%s.root"%(plotvar,suffix),"RECREATE")
 
 ################################################################
 ## saving mc histos for only backgrounds
@@ -127,11 +144,17 @@ for i, mcname in enumerate(mcfilelist):
   tfile = ROOT.TFile(rfname)
   wentries = tfile.Get("cattree/nevents").Integral()
   scale = scale/wentries
+  print "Bkg scales : ", mcname, scale
     
   mchist = makeTH1(rfname, tname, title, binning, plotvar, tcut, scale)
   mchist.SetLineColor(colour)
   mchist.SetFillColor(colour)
   mchistList.append(mchist)
+  
+  mchist.SetName("bkg_" + mcname)
+  outMassHist.cd()
+  mchist.Write()
+  
 #overflow
 if overflow:
   if len(binning) == 3 : nbin = binning[0]
@@ -151,8 +174,6 @@ for hist in mchistList :
   hs_bkg.Add( hist)
 hs_bkg.Draw()
 
-outMassHist = ROOT.TFile.Open("invMass_%s%s.root"%(plotvar,suffix),"RECREATE")
-
 bkgs = hs_bkg.GetStack().Last()
 bkgs.SetName("bkg")
 bkgs.Draw()
@@ -162,6 +183,8 @@ print "bkg entries: ",bkgs.GetEntries()
 
 dicPeakVsMass = {}
 dSizeBin = 1.0 * ( binning[2] - binning[1] ) / binning[0]
+nNumFitRangeL = 1000
+nNumFitRangeR = 2
 
 ################################################################
 ##  Getting peaks of TT samples
@@ -174,6 +197,10 @@ for topMass in topMassList :
   scale = datalumi*data["xsec"]
   colour = data["colour"]
   title = data["title"]
+
+  dMassCurr = 0.0
+  if massValue != "nominal" : dMassCurr = int(massValue) * 0.1
+  else : dMassCurr = dMassNomial
 
   rfname = rootfileDir + topMass +".root"
   tfile = ROOT.TFile(rfname)
@@ -197,35 +224,44 @@ for topMass in topMassList :
       mchist.SetBinContent(i, mchist.GetBinContent(i)/mchist.GetBinWidth(i))
       mchist.SetBinError(i, mchist.GetBinError(i)/mchist.GetBinWidth(i))
 
-  dMaxBinCont = -1048576.0
-  nIdxBinMax = 0
-
-  for i in range(binning[0]):
-      dPointData = mchist.GetBinContent(i)
-      if dMaxBinCont < dPointData: 
-          dMaxBinCont = dPointData
-          nIdxBinMax = i
-
-  dXPeak = binning[1] + nIdxBinMax * dSizeBin
-  print "X_Max = %lf (%i, %lf)"%(dXPeak, nIdxBinMax, dMaxBinCont)
-
-  dMinFitR = dXPeak - 3 * dSizeBin
-  if dMinFitR < 0 : dMinFitR = 0
-  tf1 = ROOT.TF1("f1_data","gaus",dMinFitR, dXPeak + 3 * dSizeBin)
-  #tf1 = ROOT.TF1("f1_data","crystalball",50,80)
-  mchist.Fit(tf1, "", "", dMinFitR, dXPeak + 3 * dSizeBin)
+  # Fitting (no bkg)
+  dXPeak = binning[1] + MyGetPosMaxHist(mchist, binning[0]) * dSizeBin
+  print "X_Max (no bkg) = %lf"%(dXPeak)
+  dMinFitRange = dXPeak - nNumFitRangeL * dSizeBin
+  if dMinFitRange < 0 : dMinFitRange = 0
   
-  dicPeakVsMass[ massValue ] = {"value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
-  print "------ Peak : %f, Err : %f"%(tf1.GetParameter(1), tf1.GetParError(1))
+  tf1 = ROOT.TF1("f1_TT_nobkg","gaus",dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  #tf1 = ROOT.TF1("f1_data","crystalball",50,80)
+  mchist.Fit(tf1, "", "", dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  
+  dicPeakVsMass[ massValue + "_nobkg" ] = {"m":dMassCurr, "value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
+  print "------ Peak (no bkg) : %f, Err : %f"%(tf1.GetParameter(1), tf1.GetParError(1))
 
+  # Getting the plot 
   sum_hs.Add( mchist )
   masshist = sum_hs.GetStack().Last()
+
+  # Fitting (with bkg)
+  dXPeak = binning[1] + MyGetPosMaxHist(masshist, binning[0]) * dSizeBin
+  print "X_Max = %lf"%(dXPeak)
+  dMinFitRange = dXPeak - nNumFitRangeL * dSizeBin
+  if dMinFitRange < 0 : dMinFitRange = 0
+  
+  tf1 = ROOT.TF1("f1_TT","gaus",dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  #tf1 = ROOT.TF1("f1_data","crystalball",50,80)
+  masshist.Fit(tf1, "", "", dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  
+  dicPeakVsMass[ massValue ] = {"m":dMassCurr, "value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
+  print "------ Peak : %f, Err : %f"%(tf1.GetParameter(1), tf1.GetParError(1))
+ 
   masshist.Draw()
   print masshist.GetEntries()
+  
   masshist.SetName("invMass_%s"%(massValue))
   masshist.SetTitle("Invariant mass; M_{l+D*};Entries/%f"%( masshist.GetBinWidth(1) ))
   outMassHist.cd()
   masshist.Write()
+  
   mchist.SetName("ttbar_mtop%s"%(massValue))
   mchist.Write()
   #outMassHist.Write()
@@ -254,64 +290,95 @@ if binNormalize and len(binning)!=3:
     rdhist.SetBinContent(i, rdhist.GetBinContent(i)/rdhist.GetBinWidth(i))
     rdhist.SetBinError(i, rdhist.GetBinError(i)/rdhist.GetBinWidth(i))
 
-dMaxBinCont = -1048576.0
-nIdxBinMax = 0
+# Fitting
+dXPeak = binning[1] + MyGetPosMaxHist(rdhist, binning[0]) * dSizeBin
+print "X_Max (data) = %lf"%(dXPeak)
+dMinFitRange = dXPeak - nNumFitRangeL * dSizeBin
+if dMinFitRange < 0 : dMinFitRange = 0
 
-for i in range(binning[0]):
-    dPointData = rdhist.GetBinContent(i)
-    if dMaxBinCont < dPointData: 
-        dMaxBinCont = dPointData
-        nIdxBinMax = i
-
-dXPeak = binning[1] + nIdxBinMax * ( 1.0 * ( binning[2] - binning[1] ) / binning[0] )
-print "X_Max = %lf (%i, %lf)"%(dXPeak, nIdxBinMax, dMaxBinCont)
-print "(%lf, %lf, %lf)"%(rdhist.GetBinContent(nIdxBinMax - 1), rdhist.GetBinContent(nIdxBinMax), rdhist.GetBinContent(nIdxBinMax + 1))
-
-dMinFitR = dXPeak - 3 * dSizeBin
-if dMinFitR < 0 : dMinFitR = 0
-tf1 = ROOT.TF1("f1_data","gaus",dMinFitR, dXPeak + 3 * dSizeBin)
+tf1 = ROOT.TF1("f1_data","gaus",dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
 #tf1 = ROOT.TF1("f1_data","crystalball",50,80)
-rdhist.Fit(tf1, "", "", dMinFitR, dXPeak + 3 * dSizeBin)
+rdhist.Fit(tf1, "", "", dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
 
 dicPeakVsMass[ "data" ] = {"value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
 print dicPeakVsMass
 
+outMassHist.cd()
+rdhist.Draw()
+
 ################################################################
-##  Plotting the linear plot
+##  Plotting the linear plot (without bkg)
 ################################################################
+print "##### Fitting (no bkg)"
 dBinMinPeak = 164.0
 dBinMaxPeak = 180.0
 dSizeBin = 0.5
 
-histPeak = ROOT.TH1D("histPaek", "Peaks", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
-histPeak.SetLineColor(1)
+histPeak_nb = ROOT.TH1D("histPeak_nobkg", "Peaks (no bkg)", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
+histPeak_nb.SetLineColor(1)
 
 dDatMinPeak =  1048576.0
 dDatMaxPeak = -1048576.0
 
 for strMass in dicPeakVsMass.keys() :
-    dMass = 0.0
+    if strMass == "data" : continue
+    elif "_nobkg" not in strMass : continue
     
-    if strMass == "data" : 
-        print "data!"
-        continue
-    elif strMass == "nominal" : dMass = dMassNomial
-    else: dMass = int(strMass) * 0.1
-    
+    dMass = dicPeakVsMass[ strMass ][ "m" ]
     dDatVal = dicPeakVsMass[ strMass ][ "value" ]
     dDatErr = dicPeakVsMass[ strMass ][ "error" ]
     
-    print dMass, dDatVal, dDatErr
+    print dMass, strMass, dDatVal, dDatErr
     
     nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
-    histPeak.SetBinContent(nIdxBin, dDatVal)
-    histPeak.SetBinError(nIdxBin, dDatErr)
+    histPeak_nb.SetBinContent(nIdxBin, dDatVal)
+    histPeak_nb.SetBinError(nIdxBin, dDatErr)
     
     if dDatMinPeak > dDatVal: dDatMinPeak = dDatVal
     if dDatMaxPeak < dDatVal: dDatMaxPeak = dDatVal
 
 dDatMean = ( dDatMaxPeak + dDatMinPeak ) / 2
-print dDatMinPeak, dDatMean, dDatMaxPeak
+histPeak_nb.SetMinimum(dDatMinPeak - ( dDatMean - dDatMinPeak ) * 4.0)
+histPeak_nb.SetMaximum(dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 4.0)
+
+tf1 = ROOT.TF1("f1_peaks_nobkg", "pol1", dBinMinPeak, dBinMaxPeak)
+histPeak_nb.Fit(tf1)
+
+outMassHist.cd()
+histPeak_nb.Write()
+
+################################################################
+##  Plotting the linear plot
+################################################################
+print "##### Fitting (bkg)"
+dBinMinPeak = 164.0
+dBinMaxPeak = 180.0
+dSizeBin = 0.5
+
+histPeak = ROOT.TH1D("histPeak", "Peaks", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
+histPeak.SetLineColor(1)
+
+#dDatMinPeak =  1048576.0
+#dDatMaxPeak = -1048576.0
+
+for strMass in dicPeakVsMass.keys() :
+    if strMass == "data" : continue
+    elif "_nobkg" in strMass : continue
+    
+    dMass = dicPeakVsMass[ strMass ][ "m" ]
+    dDatVal = dicPeakVsMass[ strMass ][ "value" ]
+    dDatErr = dicPeakVsMass[ strMass ][ "error" ]
+    
+    print dMass, strMass, dDatVal, dDatErr
+    
+    nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
+    histPeak.SetBinContent(nIdxBin, dDatVal)
+    histPeak.SetBinError(nIdxBin, dDatErr)
+    
+    #if dDatMinPeak > dDatVal: dDatMinPeak = dDatVal
+    #if dDatMaxPeak < dDatVal: dDatMaxPeak = dDatVal
+
+#dDatMean = ( dDatMaxPeak + dDatMinPeak ) / 2
 histPeak.SetMinimum(dDatMinPeak - ( dDatMean - dDatMinPeak ) * 4.0)
 histPeak.SetMaximum(dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 4.0)
 
@@ -321,7 +388,6 @@ histPeak.Fit(tf1)
 outMassHist.cd()
 histPeak.Write()
 
-rdhist.Draw()
 outMassHist.Write()
 outMassHist.Close()
 
