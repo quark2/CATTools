@@ -22,12 +22,18 @@ def myGetPosMaxHist(hist, nNumBin):
 
 # -- For Landau distribution
 def myFitInvMass(hist, binning):
+  tf1 = ROOT.TF1("f1_fit","landau", binning[1], binning[2])
+  hist.Fit(tf1)
+  
   x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
   xfitarg = ROOT.RooArgList(x, "invmass")
   dh = ROOT.RooDataHist("dh","data histogram", xfitarg, hist)
+  
+  dSigma = tf1.GetParameter(2)
+  dSigmaError = tf1.GetParError(2) * 10.0
 
-  CB_MPV    = ROOT.RooRealVar("mean","mean", 60, binning[1], binning[2])
-  CB_sigma  = ROOT.RooRealVar("sigma","sigma",15, 14.5, 15.5)
+  CB_MPV    = ROOT.RooRealVar("mean","mean", tf1.GetParameter(1), binning[1], binning[2])
+  CB_sigma  = ROOT.RooRealVar("sigma","sigma",dSigma, dSigma - dSigmaError, dSigma + dSigmaError)
   
   sig_pdf   = ROOT.RooLandau("sig_fit","signal p.d.f",x, CB_MPV, CB_sigma)
   model = sig_pdf
@@ -92,7 +98,8 @@ for opt, arg in opts:
         print 'Usage : ./topDraw.py -c <cut> -w <weight> -b <binning> -p <plotvar> -x <x_name> -y <y_name> -d <dolog> -f <suffix>'
         sys.exit()
     elif opt in ("-c", "--cut"):
-        cut = arg
+        #cut = arg
+        cut = "%s&&%s"%(cut,arg)
     elif opt in ("-a", "--channel"):
         channel = int(arg)
     elif opt in ("-s", "--step"):
@@ -336,7 +343,8 @@ for topMass in topMassList :
   print "------      (sigma : %f, %f)"%(roofitres_mass[ "sigma_val" ], roofitres_mass[ "sigma_err" ])
   
   outMassHist.cd()
-  roofitres_nobkg[ "frame" ].SetName("ttbar_mtop%s_byRooFit"%(massValue))
+  roofitres_nobkg[ "frame" ].SetName("ttbar_mtop%s"%(massValue))
+  roofitres_nobkg[ "frame" ].SetTitle("M_{l+D} in only TT;Entries/%f"%( masshist.GetBinWidth(1) ))
   roofitres_nobkg[ "frame" ].Write()
   
   outMassHist.cd()
@@ -349,9 +357,9 @@ for topMass in topMassList :
 ################################################################
 #output = ROOT.TFile.Open("data_%s.root"%(plotvar),"RECREATE")
 if len(binning) == 3:
-  rdhist = ROOT.TH1D("Run2016", "RealData in 2016", binning[0], binning[1], binning[2])
+  rdhist = ROOT.TH1D("Run2016_dummy", "RealData in 2016", binning[0], binning[1], binning[2])
 else:
-  rdhist = ROOT.TH1D("Run2016", "RealData in 2016", len(binning)-1, array.array('f', binning))
+  rdhist = ROOT.TH1D("Run2016_dummy", "RealData in 2016", len(binning)-1, array.array('f', binning))
 for i, rdfile in enumerate(rdfilelist):
   rfname = rootfileDir + rdfile +".root"
   rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
@@ -398,7 +406,9 @@ print "------ Peak by RooFit : %f, Err : %f"%(roofitres_data[ "peak_val" ], roof
 print "------      (sigma : %f, %f)"%(roofitres_data[ "sigma_val" ], roofitres_data[ "sigma_err" ])
 
 outMassHist.cd()
-roofitres_data[ "frame" ].Draw()
+roofitres_data[ "frame" ].SetName("Run2016")
+roofitres_data[ "frame" ].SetTitle("RealData in 2016")
+roofitres_data[ "frame" ].Write()
 
 ################################################################
 ##  Prepare to draw the linear plot
@@ -411,15 +421,18 @@ dDatMinPeak =  1048576.0
 dDatMaxPeak = -1048576.0
 
 for strMass in dicPeakVsMass.keys() :
-    if strMass == "data" : continue
+    #if strMass == "data" : continue
     
     dDatVal = dicPeakVsMass[ strMass ][ "value" ]
-    if dDatMinPeak > dDatVal: dDatMinPeak = dDatVal
-    if dDatMaxPeak < dDatVal: dDatMaxPeak = dDatVal
+    dDatErr = dicPeakVsMass[ strMass ][ "error" ]
+    
+    if dDatMinPeak > dDatVal - dDatErr : dDatMinPeak = dDatVal - dDatErr
+    if dDatMaxPeak < dDatVal + dDatErr : dDatMaxPeak = dDatVal + dDatErr
 
 dDatMean = ( dDatMaxPeak + dDatMinPeak ) / 2
-dDatMinPeak = dDatMinPeak - ( dDatMean - dDatMinPeak ) * 4.0
-dDatMaxPeak = dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 4.0
+dDatMinPeak = dDatMinPeak - ( dDatMean - dDatMinPeak ) * 1.0
+dDatMaxPeak = dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 1.0
+print "Range in linear plot : ", dDatMinPeak, dDatMean, dDatMaxPeak
 
 """
 ################################################################
