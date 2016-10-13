@@ -4,8 +4,10 @@ from CATTools.CatAnalyzer.histoHelper import *
 import DYestimation
 ROOT.gROOT.SetBatch(True)
 
+ROOT.gSystem.Load("libRooFit")
 
-def MyGetPosMaxHist(hist, nNumBin):
+
+def myGetPosMaxHist(hist, nNumBin):
   dMaxBinCont = -1048576.0
   nIdxBinMax = 0
 
@@ -18,7 +20,32 @@ def MyGetPosMaxHist(hist, nNumBin):
   return nIdxBinMax
 
 
-datalumi = 15.92 # Run2016 B & C & D & E, v8-0-1
+# -- For Landau distribution
+def myFitInvMass(hist, binning):
+  x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
+  xfitarg = ROOT.RooArgList(x, "invmass")
+  dh = ROOT.RooDataHist("dh","data histogram", xfitarg, hist)
+
+  CB_MPV    = ROOT.RooRealVar("mean","mean", 60, binning[1], binning[2])
+  CB_sigma  = ROOT.RooRealVar("sigma","sigma",15, 14.5, 15.5)
+  
+  sig_pdf   = ROOT.RooLandau("sig_fit","signal p.d.f",x, CB_MPV, CB_sigma)
+  model = sig_pdf
+  
+  fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save())
+  
+  top_mass_frame = x.frame()
+  dh.plotOn(top_mass_frame)
+
+  model.plotOn(top_mass_frame)
+  model.plotOn(top_mass_frame, ROOT.RooFit.Components(ROOT.RooArgSet(sig_pdf)),
+    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(ROOT.kDashed))
+  
+  return {"frame":top_mass_frame, "peak_val":CB_MPV.getVal(), "peak_err":CB_MPV.getError(), 
+    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError()}
+
+
+datalumi = 15.92 # Run2016 B & C & D & E, v8-0-1 (F and latters cannot be used; ICHEP)
 CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
 datalumi = datalumi*1000 # due to fb
 
@@ -212,59 +239,110 @@ for topMass in topMassList :
   mchist.SetLineColor(colour)
   mchist.SetFillColor(colour)
   print "topmass hsit : ",mchist.Integral()
-  #overflow
+  # -- Overflow
   if overflow:
     if len(binning) == 3 : nbin = binning[0]
     else : nbin = len(binnin)-1
     mchist.SetBinContent(nbin, mchist.GetBinContent(nbin+1))
 
-  #bin normalize
+  # -- Bin normalize
   if binNormalize and len(binning)!=3:
     for i in range(len(binning)):
       mchist.SetBinContent(i, mchist.GetBinContent(i)/mchist.GetBinWidth(i))
       mchist.SetBinError(i, mchist.GetBinError(i)/mchist.GetBinWidth(i))
 
-  # Fitting (no bkg)
-  dXPeak = binning[1] + MyGetPosMaxHist(mchist, binning[0]) * dSizeBin
+  # -- Getting the plot 
+  sum_hs.Add( mchist )
+  masshist = sum_hs.GetStack().Last()
+ 
+  # -- Saving results into the root file
+  masshist.Draw()
+  print masshist.GetEntries()
+
+  """
+  # -- Fitting by TH1.Fit() (no bkg)
+  dXPeak = binning[1] + myGetPosMaxHist(mchist, binning[0]) * dSizeBin
   print "X_Max (no bkg) = %lf"%(dXPeak)
   dMinFitRange = dXPeak - nNumFitRangeL * dSizeBin
   if dMinFitRange < 0 : dMinFitRange = 0
   
-  tf1 = ROOT.TF1("f1_TT_nobkg","gaus",dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
-  #tf1 = ROOT.TF1("f1_data","crystalball",50,80)
-  mchist.Fit(tf1, "", "", dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  print ""
+  print "#####################################################"
+  print "### Fitting (%s, no bkg) by TH1.Fit() is beginning"%(massValue)
+  print "#####################################################"
   
-  dicPeakVsMass[ massValue + "_nobkg" ] = {"m":dMassCurr, "value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
-  print "------ Peak (no bkg) : %f, Err : %f"%(tf1.GetParameter(1), tf1.GetParError(1))
+  #tf1 = ROOT.TF1("f1_TT_nobkg","gaus",dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  tf1 = ROOT.TF1("f1_TT_nobkg","landau", binning[1], binning[2])
+  #mchist.Fit(tf1, "", "", dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  mchist.Fit(tf1, "", "11111111111")
+  
+  dicPeakVsMass[ massValue + "_TH1_nobkg" ] = {"m":dMassCurr, 
+    "value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
+  print "------ Peak (no bkg) by TH1.Fit() : %f, Err : %f"%(tf1.GetParameter(1), tf1.GetParError(1))
 
-  # Getting the plot 
-  sum_hs.Add( mchist )
-  masshist = sum_hs.GetStack().Last()
-
-  # Fitting (with bkg)
-  dXPeak = binning[1] + MyGetPosMaxHist(masshist, binning[0]) * dSizeBin
+  # -- Fitting by TH1.Fit() (with bkg)
+  dXPeak = binning[1] + myGetPosMaxHist(masshist, binning[0]) * dSizeBin
   print "X_Max = %lf"%(dXPeak)
   dMinFitRange = dXPeak - nNumFitRangeL * dSizeBin
   if dMinFitRange < 0 : dMinFitRange = 0
   
-  tf1 = ROOT.TF1("f1_TT","gaus",dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
-  #tf1 = ROOT.TF1("f1_data","crystalball",50,80)
-  masshist.Fit(tf1, "", "", dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  print ""
+  print "#####################################################"
+  print "### Fitting (%s) by TH1.Fit() is beginning"%(massValue)
+  print "#####################################################"
   
-  dicPeakVsMass[ massValue ] = {"m":dMassCurr, "value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
-  print "------ Peak : %f, Err : %f"%(tf1.GetParameter(1), tf1.GetParError(1))
- 
-  masshist.Draw()
-  print masshist.GetEntries()
+  #tf1 = ROOT.TF1("f1_TT","gaus",dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  tf1 = ROOT.TF1("f1_TT","landau", binning[1], binning[2])
+  #masshist.Fit(tf1, "", "", dMinFitRange, dXPeak + nNumFitRangeR * dSizeBin)
+  masshist.Fit(tf1, "", "11111111111")
   
+  dicPeakVsMass[ massValue + "_TH1" ] = {"m":dMassCurr, "value":tf1.GetParameter(1), "error":tf1.GetParError(1)}
+  print "------ Peak by TH1.Fit() : %f, Err : %f"%(tf1.GetParameter(1), tf1.GetParError(1))
+  
+  outMassHist.cd()
   masshist.SetName("invMass_%s"%(massValue))
   masshist.SetTitle("Invariant mass; M_{l+D*};Entries/%f"%( masshist.GetBinWidth(1) ))
-  outMassHist.cd()
   masshist.Write()
   
+  outMassHist.cd()
   mchist.SetName("ttbar_mtop%s"%(massValue))
   mchist.Write()
-  #outMassHist.Write()
+  """
+  
+  # -- Fitting by RooFit (no bkg)
+  print ""
+  print "#####################################################"
+  print "### Fitting (%s, no bkg) by RooFit is beginning"%(massValue)
+  print "#####################################################"
+  
+  roofitres_nobkg = myFitInvMass(mchist, binning)
+  dicPeakVsMass[ massValue + "_RooFit_nobkg" ] = {"m":dMassCurr, 
+    "value":roofitres_nobkg[ "peak_val" ], "error":roofitres_nobkg[ "peak_err" ]}
+
+  print "------ Peak (no bkg) by RooFit : %f, Err : %f"%(roofitres_nobkg["peak_val"], roofitres_nobkg["peak_err"])
+  print "------      (sigma : %f, %f)"%(roofitres_nobkg[ "sigma_val" ], roofitres_nobkg[ "sigma_err" ])
+  
+  # -- Fitting by RooFit (with bkg)
+  print ""
+  print "#####################################################"
+  print "### Fitting (%s) by RooFit is beginning"%(massValue)
+  print "#####################################################"
+  
+  roofitres_mass = myFitInvMass(masshist, binning)
+  dicPeakVsMass[ massValue + "_RooFit" ] = {"m":dMassCurr, 
+    "value":roofitres_mass[ "peak_val" ], "error":roofitres_mass[ "peak_err" ]}
+
+  print "------ Peak by RooFit : %f, Err : %f"%(roofitres_mass["peak_val"], roofitres_mass["peak_err"])
+  print "------      (sigma : %f, %f)"%(roofitres_mass[ "sigma_val" ], roofitres_mass[ "sigma_err" ])
+  
+  outMassHist.cd()
+  roofitres_nobkg[ "frame" ].SetName("ttbar_mtop%s_byRooFit"%(massValue))
+  roofitres_nobkg[ "frame" ].Write()
+  
+  outMassHist.cd()
+  roofitres_mass[ "frame" ].SetName("invMass_%s_byRooFit"%(massValue))
+  roofitres_mass[ "frame" ].SetTitle("Invariant mass; M_{l+D};Entries/%f"%( masshist.GetBinWidth(1) ))
+  roofitres_mass[ "frame" ].Write()
 
 ################################################################
 ##  Getting peaks of data samples
@@ -291,7 +369,8 @@ if binNormalize and len(binning)!=3:
     rdhist.SetBinError(i, rdhist.GetBinError(i)/rdhist.GetBinWidth(i))
 
 # Fitting
-dXPeak = binning[1] + MyGetPosMaxHist(rdhist, binning[0]) * dSizeBin
+"""
+dXPeak = binning[1] + myGetPosMaxHist(rdhist, binning[0]) * dSizeBin
 print "X_Max (data) = %lf"%(dXPeak)
 dMinFitRange = dXPeak - nNumFitRangeL * dSizeBin
 if dMinFitRange < 0 : dMinFitRange = 0
@@ -305,88 +384,176 @@ print dicPeakVsMass
 
 outMassHist.cd()
 rdhist.Draw()
+"""
+# Fitting by RooFit
+print ""
+print "#####################################################"
+print "### Fitting data by RooFit is beginning"
+print "#####################################################"
+
+roofitres_data = myFitInvMass(rdhist, binning)
+dicPeakVsMass[ "data" ] = {"value":roofitres_data[ "peak_val" ], "error":roofitres_data[ "peak_err" ]}
+
+print "------ Peak by RooFit : %f, Err : %f"%(roofitres_data[ "peak_val" ], roofitres_data[ "peak_err" ])
+print "------      (sigma : %f, %f)"%(roofitres_data[ "sigma_val" ], roofitres_data[ "sigma_err" ])
+
+outMassHist.cd()
+roofitres_data[ "frame" ].Draw()
 
 ################################################################
-##  Plotting the linear plot (without bkg)
+##  Prepare to draw the linear plot
 ################################################################
-print "##### Fitting (no bkg)"
 dBinMinPeak = 164.0
 dBinMaxPeak = 180.0
-dSizeBin = 0.5
-
-histPeak_nb = ROOT.TH1D("histPeak_nobkg", "Peaks (no bkg)", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
-histPeak_nb.SetLineColor(1)
+dSizeBin = 0.1
 
 dDatMinPeak =  1048576.0
 dDatMaxPeak = -1048576.0
 
 for strMass in dicPeakVsMass.keys() :
     if strMass == "data" : continue
-    elif "_nobkg" not in strMass : continue
+    
+    dDatVal = dicPeakVsMass[ strMass ][ "value" ]
+    if dDatMinPeak > dDatVal: dDatMinPeak = dDatVal
+    if dDatMaxPeak < dDatVal: dDatMaxPeak = dDatVal
+
+dDatMean = ( dDatMaxPeak + dDatMinPeak ) / 2
+dDatMinPeak = dDatMinPeak - ( dDatMean - dDatMinPeak ) * 4.0
+dDatMaxPeak = dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 4.0
+
+"""
+################################################################
+##  Plotting the linear plot by TH1.Fit() (without bkg)
+################################################################
+print "##### Fitting by TH1.Fit() (no bkg)"
+
+histPeak_nb = ROOT.TH1D("histPeak_TH1_nobkg", "Peaks (no bkg)", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
+histPeak_nb.SetLineColor(1)
+
+for strMass in dicPeakVsMass.keys() :
+    if strMass == "data" : continue
+    if "_TH1" not in strMass : continue
+    if "_nobkg" not in strMass : continue
     
     dMass = dicPeakVsMass[ strMass ][ "m" ]
     dDatVal = dicPeakVsMass[ strMass ][ "value" ]
     dDatErr = dicPeakVsMass[ strMass ][ "error" ]
     
-    print dMass, strMass, dDatVal, dDatErr
+    print dMass, "(" + strMass + ")", dDatVal, dDatErr
     
     nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
     histPeak_nb.SetBinContent(nIdxBin, dDatVal)
     histPeak_nb.SetBinError(nIdxBin, dDatErr)
-    
-    if dDatMinPeak > dDatVal: dDatMinPeak = dDatVal
-    if dDatMaxPeak < dDatVal: dDatMaxPeak = dDatVal
 
-dDatMean = ( dDatMaxPeak + dDatMinPeak ) / 2
-histPeak_nb.SetMinimum(dDatMinPeak - ( dDatMean - dDatMinPeak ) * 4.0)
-histPeak_nb.SetMaximum(dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 4.0)
+histPeak_nb.SetMinimum(dDatMinPeak)
+histPeak_nb.SetMaximum(dDatMaxPeak)
 
-tf1 = ROOT.TF1("f1_peaks_nobkg", "pol1", dBinMinPeak, dBinMaxPeak)
+tf1 = ROOT.TF1("f1_peaks_TH1_nobkg", "pol1", dBinMinPeak, dBinMaxPeak)
 histPeak_nb.Fit(tf1)
 
 outMassHist.cd()
 histPeak_nb.Write()
 
 ################################################################
-##  Plotting the linear plot
+##  Plotting the linear plot by TH1.Fit()
 ################################################################
-print "##### Fitting (bkg)"
-dBinMinPeak = 164.0
-dBinMaxPeak = 180.0
-dSizeBin = 0.5
+print "##### Fitting by TH1.Fit() (bkg)"
 
-histPeak = ROOT.TH1D("histPeak", "Peaks", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
+histPeak = ROOT.TH1D("histPeak_TH1", "Peaks", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
 histPeak.SetLineColor(1)
-
-#dDatMinPeak =  1048576.0
-#dDatMaxPeak = -1048576.0
 
 for strMass in dicPeakVsMass.keys() :
     if strMass == "data" : continue
-    elif "_nobkg" in strMass : continue
+    if "_TH1" not in strMass : continue
+    if "_nobkg" in strMass : continue
     
     dMass = dicPeakVsMass[ strMass ][ "m" ]
     dDatVal = dicPeakVsMass[ strMass ][ "value" ]
     dDatErr = dicPeakVsMass[ strMass ][ "error" ]
     
-    print dMass, strMass, dDatVal, dDatErr
+    print dMass, "(" + strMass + ")", dDatVal, dDatErr
     
     nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
     histPeak.SetBinContent(nIdxBin, dDatVal)
     histPeak.SetBinError(nIdxBin, dDatErr)
-    
-    #if dDatMinPeak > dDatVal: dDatMinPeak = dDatVal
-    #if dDatMaxPeak < dDatVal: dDatMaxPeak = dDatVal
 
-#dDatMean = ( dDatMaxPeak + dDatMinPeak ) / 2
-histPeak.SetMinimum(dDatMinPeak - ( dDatMean - dDatMinPeak ) * 4.0)
-histPeak.SetMaximum(dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 4.0)
+histPeak.SetMinimum(dDatMinPeak)
+histPeak.SetMaximum(dDatMaxPeak)
 
-tf1 = ROOT.TF1("f1_peaks", "pol1", dBinMinPeak, dBinMaxPeak)
+tf1 = ROOT.TF1("f1_peaks_TH1", "pol1", dBinMinPeak, dBinMaxPeak)
 histPeak.Fit(tf1)
 
 outMassHist.cd()
 histPeak.Write()
+"""
+
+################################################################
+##  Plotting the linear plot by RooFit (without bkg)
+################################################################
+print "##### Fitting by RooFit (no bkg)"
+
+histPeak_nb = ROOT.TH1D("histPeak_RooFit_nobkg", "Peaks (no bkg)", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
+histPeak_nb.SetLineColor(1)
+
+for strMass in dicPeakVsMass.keys() :
+    if strMass == "data" : continue
+    if "_RooFit" not in strMass : continue
+    if "_nobkg" not in strMass : continue
+    
+    dMass = dicPeakVsMass[ strMass ][ "m" ]
+    dDatVal = dicPeakVsMass[ strMass ][ "value" ]
+    dDatErr = dicPeakVsMass[ strMass ][ "error" ]
+    
+    print dMass, "(" + strMass + ")", dDatVal, dDatErr
+    
+    nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
+    histPeak_nb.SetBinContent(nIdxBin, dDatVal)
+    histPeak_nb.SetBinError(nIdxBin, dDatErr)
+
+histPeak_nb.SetMinimum(dDatMinPeak)
+histPeak_nb.SetMaximum(dDatMaxPeak)
+
+tf1 = ROOT.TF1("f1_peaks_RooFit_nobkg", "pol1", dBinMinPeak, dBinMaxPeak)
+histPeak_nb.Fit(tf1)
+
+outMassHist.cd()
+histPeak_nb.Write()
+
+################################################################
+##  Plotting the linear plot by RooFit
+################################################################
+print "##### Fitting by RooFit (bkg)"
+
+histPeak = ROOT.TH1D("histPeak_RooFit", "Peaks", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
+histPeak.SetLineColor(1)
+
+for strMass in dicPeakVsMass.keys() :
+    if strMass == "data" : continue
+    if "_RooFit" not in strMass : continue
+    if "_nobkg" in strMass : continue
+    
+    dMass = dicPeakVsMass[ strMass ][ "m" ]
+    dDatVal = dicPeakVsMass[ strMass ][ "value" ]
+    dDatErr = dicPeakVsMass[ strMass ][ "error" ]
+    
+    print dMass, "(" + strMass + ")", dDatVal, dDatErr
+    
+    nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
+    histPeak.SetBinContent(nIdxBin, dDatVal)
+    histPeak.SetBinError(nIdxBin, dDatErr)
+
+histPeak.SetMinimum(dDatMinPeak)
+histPeak.SetMaximum(dDatMaxPeak)
+
+tf1 = ROOT.TF1("f1_peaks_RooFit", "pol1", dBinMinPeak, dBinMaxPeak)
+histPeak.Fit(tf1)
+
+outMassHist.cd()
+histPeak.Write()
+
+################################################################
+##  Everything is over; closing the file
+################################################################
 
 outMassHist.Write()
 outMassHist.Close()
