@@ -82,8 +82,7 @@ for opt, arg in opts:
 tname = "cattree/%s"%(treename)
 
 #cut define
-stepch_tcut = 'step>=%i'%(step)
-if channel != 0: stepch_tcut = '%s&&channel==%i'%(stepch_tcut,channel)
+stepch_tcut = 'step>=%i%s'%(step, "&&channel==%i"%(channel) if channel != 0 else "")
 tcutonly = '%s&&%s'%(stepch_tcut,cut)
 tcut = '(%s)*(%s)'%(tcutonly,weight)
 
@@ -100,12 +99,10 @@ print "TCut =",tcut
 #namming
 x_name = x_name
 if len(binning) <= 3:
-    num = (binning[2]-binning[1])/float(binning[0])
-    if num != 1:
-        if x_name.endswith(']'):
-            unit = "["+x_name.split('[')[1]
-        else: unit = ""
-        y_name = y_name + "/%g%s"%(num,unit)
+  num = (binning[2]-binning[1])/float(binning[0])
+  if num != 1:
+    unit = "["+x_name.split('[')[1] if x_name.endswith(']') else ""
+    y_name = y_name + "/%g%s"%(num,unit)
 
 #DYestimation
 if not os.path.exists('./DYFactor.json'):
@@ -168,8 +165,7 @@ for i, rdfile in enumerate(rdfilelist):
 
 #overflow
 if overflow:
-  if len(binning) == 3 : nbin = binning[0]
-  else : nbin = len(binnin)-1
+  nbin = binning[0] if len(binning) == 3 else len(binning)-1
   for hist in mchistList:
     hist.SetBinContent(nbin, hist.GetBinContent(nbin+1))
   rdhist.SetBinContent(nbin, rdhist.GetBinContent(nbin+1))

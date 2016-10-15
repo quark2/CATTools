@@ -85,8 +85,7 @@ tname = "cattree/nom"
 #if   channel == 1: ttother_tcut = "!(gen_partonChannel==2 && ((gen_partonMode1==1 && gen_partonMode2==2) || (gen_partonMode1==2 && gen_partonMode2==1)))"
 #elif channel == 2: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==2 && gen_partonMode2==2))"
 #elif channel == 3: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==1 && gen_partonMode2==1))"
-stepch_tcut =  'step>=%i'%(step)
-if channel != 0: stepch_tcut = '%s&&channel==%i'%(stepch_tcut,channel)
+stepch_tcut = 'step>=%i%s'%(step, "&&channel==%i"%(channel) if channel != 0 else "")
 tcut = '(%s&&%s)*(%s)'%(stepch_tcut,cut,weight)
 #ttother_tcut = '(%s&&%s&&%s)*(%s)'%(stepch_tcut,cut,ttother_tcut,weight)
 rd_tcut = '%s&&%s'%(stepch_tcut,cut)
@@ -98,9 +97,7 @@ print "TCut =",tcut
 if len(binning) <= 3:
   num = (binning[2]-binning[1])/float(binning[0])
   if num != 1:
-    if x_name.endswith(']'):
-      unit = "["+x_name.split('[')[1]
-    else: unit = ""
+    unit = "["+x_name.split('[')[1] if x_name.endswith(']') else ""
     y_name = y_name + "/%g%s"%(num,unit)
 
 ################################################################
@@ -148,8 +145,7 @@ for i, mcname in enumerate(mcfilelist):
   
 #overflow
 if overflow:
-  if len(binning) == 3 : nbin = binning[0]
-  else : nbin = len(binnin)-1
+  nbin = binning[0] if len(binning) == 3 else len(binning)-1
   for hist in mchistList:
     hist.SetBinContent(nbin, hist.GetBinContent(nbin+1))
 
@@ -181,17 +177,14 @@ print "bkg entries: ",bkgs.GetEntries()
 ##  Saving TT samples
 ################################################################
 for topMass in topMassList :
-  if ( topMass.find("mtop") != -1 ) :  massValue = topMass.split("mtop")[-1]
-  else : massValue = "nominal" 
+  massValue = topMass.split("mtop")[-1] if ( topMass.find("mtop") != -1 ) else "nominal"
   sum_hs =  hs_bkg.Clone()
   data = findDataSet(topMass, datasets)
   scale = datalumi*data["xsec"]
   colour = data["colour"]
   title = data["title"]
 
-  dMassCurr = 0.0
-  if massValue != "nominal" : dMassCurr = int(massValue) * 0.1
-  else : dMassCurr = dMassNomial
+  dMassCurr = int(massValue) * 0.1 if massValue != "nominal" else dMassNomial
 
   rfname = rootfileDir + topMass +".root"
   tfile = ROOT.TFile(rfname)
@@ -205,8 +198,7 @@ for topMass in topMassList :
   print "topmass hsit : ",mchist.Integral()
   # -- Overflow
   if overflow:
-    if len(binning) == 3 : nbin = binning[0]
-    else : nbin = len(binnin)-1
+    nbin = binning[0] if len(binning) == 3 else len(binning)-1
     mchist.SetBinContent(nbin, mchist.GetBinContent(nbin+1))
 
   # -- Bin normalize
@@ -251,8 +243,7 @@ for i, rdfile in enumerate(rdfilelist):
   rdhist.Add(rdhist_tmp)
 #overflow
 if overflow:
-  if len(binning) == 3 : nbin = binning[0]
-  else : nbin = len(binnin)-1
+  nbin = binning[0] if len(binning) == 3 else len(binning)-1
   rdhist.SetBinContent(nbin, rdhist.GetBinContent(nbin+1))
 if binNormalize and len(binning)!=3:
   for i in range(len(binning)):
