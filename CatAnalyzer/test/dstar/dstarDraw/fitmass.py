@@ -57,44 +57,51 @@ def myFitInvMassWithHalfGaussian(hist, suffix, binning):
 
 
 # -- For Landau distribution
-def myFitInvMassWithLandau(hist, suffix, binning):
+#def myFitInvMassWithLandau(hist, x, binning, marker, color, suffix):
+def myFitInvMassWithLandau(hist, strName, x, binning, dicStyle):
   tf1 = ROOT.TF1("f1_fit","landau", binning[1], binning[2])
   hist.Fit(tf1)
   
-  x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
+  #x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
   xfitarg = ROOT.RooArgList(x, "invmass")
   dh = ROOT.RooDataHist("dh","data histogram", xfitarg, hist)
   
   dSigma = tf1.GetParameter(2)
   dSigmaError = tf1.GetParError(2) * 10.0
 
-  CB_MPV    = ROOT.RooRealVar("mean" + suffix,"mean" + suffix, 
+  CB_MPV    = ROOT.RooRealVar("mean" + dicStyle[ "suffix" ], "mean" + dicStyle[ "suffix" ], 
     tf1.GetParameter(1), binning[1], binning[2])
-  CB_sigma  = ROOT.RooRealVar("sigma" + suffix,"sigma" + suffix, 
+  CB_sigma  = ROOT.RooRealVar("sigma" + dicStyle[ "suffix" ], "sigma" + dicStyle[ "suffix" ], 
     dSigma, dSigma - dSigmaError, dSigma + dSigmaError)
   
-  sig_pdf   = ROOT.RooLandau("sig_fit","signal p.d.f",x, CB_MPV, CB_sigma)
+  sig_pdf   = ROOT.RooLandau("sig_fit","signal p.d.f", x, CB_MPV, CB_sigma)
   model = sig_pdf
   
   fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save())
+  chi2 = model.createChi2(dh)
   
   top_mass_frame = x.frame()
-  dh.plotOn(top_mass_frame)
+  strNameHisto = "roofithisto_" + strName
+  dh.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameHisto), 
+    ROOT.RooFit.MarkerColor(dicStyle[ "color" ]), ROOT.RooFit.MarkerStyle(dicStyle[ "marker" ]))
   
-  model.paramOn(top_mass_frame, ROOT.RooFit.Format("NELU", ROOT.RooFit.AutoPrecision(2)), 
-    ROOT.RooFit.Layout(0.1, 0.4, 0.9))
+  #model.paramOn(top_mass_frame, ROOT.RooFit.Format("NELU", ROOT.RooFit.AutoPrecision(2)), 
+  #  ROOT.RooFit.Layout(0.1, 0.4, 0.9))
 
-  model.plotOn(top_mass_frame)
+  strNameCurve = "fittingcurve_" + strName
+  model.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameCurve), 
+    ROOT.RooFit.LineColor(dicStyle[ "color" ]), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
   model.plotOn(top_mass_frame, ROOT.RooFit.Components(ROOT.RooArgSet(sig_pdf)),
-    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(ROOT.kDashed))
+    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
   
-  return {"frame":top_mass_frame, "peak_val":CB_MPV.getVal(), "peak_err":CB_MPV.getError(), 
-    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError()}
+  return {"frame":top_mass_frame, "histo":strNameHisto, "graph":strNameCurve, 
+    "peak_val":CB_MPV.getVal(), "peak_err":CB_MPV.getError(), 
+    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError(), "chi2":chi2.getVal()}
 
 
-def myFitInvMass(hist, suffix, binning):
-  return myFitInvMassWithLandau(hist, suffix, binning)
-  #return myFitInvMassWithHalfGaussian(hist, suffix, binning)
+def myFitInvMass(hist, strName, x, binning, dicStyle):
+  return myFitInvMassWithLandau(hist, strName, x, binning, dicStyle)
+  #return myFitInvMassWithHalfGaussian(hist, x, binning, dicStyle)
 
 
 ################################################################
@@ -122,7 +129,15 @@ binning = dicHists["binning"]
 x_name = dicHists["x_name"]
 y_name = dicHists["y_name"]
 
-ROOT.gStyle.SetOptFit(1111)
+canvasMain = makeCanvas("canvasMain")
+strKeyData = ""
+
+dicHistoStyle = {
+  "data":    {"label":"Data",   "marker":ROOT.kFullDotLarge, "color":ROOT.kRed,  "line":ROOT.kDashed}, 
+  "1695":    {"label":"169.5",  "marker":ROOT.kMultiply,     "color":8,          "line":ROOT.kSolid}, 
+  "nominal": {"label":"173.07", "marker":ROOT.kCircle,       "color":ROOT.kBlue, "line":ROOT.kSolid}, 
+  "1755":    {"label":"175.5",  "marker":ROOT.kPlus,         "color":ROOT.kPink, "line":ROOT.kSolid}
+}
 
 ################################################################
 ##  Getting peaks of TT samples
@@ -131,12 +146,24 @@ for strKey in dicHists.keys():
   if "type" not in dicHists[ strKey ] : continue
   if dicHists[ strKey ][ "type" ] not in ["TT_onlytt", "TT_withbkg", "data"] : continue
   
+  if dicHists[ strKey ][ "type" ] == "data" : strKeyData = strKey
+  
   # If str is missing, since strKey is in unicode type, it yields an error.
   histCurr = ROOT.TH1D(rootHists.Get(str(strKey)))
+  
+  strStyleCurr = ""
+  
+  for strStyle in dicHistoStyle.keys() : 
+    if strStyle in strKey : 
+      strStyleCurr = strStyle
+      break
   
   strSuffix = ""
   if dicHists[ strKey ][ "type" ] in ["TT_onlytt", "TT_withbkg"] : 
     strSuffix = "_%0.1f"%(dicHists[ strKey ][ "mass" ])
+  
+  dicHistoStyle[ strStyleCurr ][ "suffix" ] = strSuffix
+  dicHists[ strKey ][ "label" ] = dicHistoStyle[ strStyleCurr ][ "label" ]
   
   # -- Fitting by RooFit (no bkg)
   print ""
@@ -144,25 +171,96 @@ for strKey in dicHists.keys():
   print "### Fitting (%s) by RooFit is beginning"%(strKey)
   print "#####################################################"
   
-  dicHists[ strKey ][ "fitres" ] = myFitInvMass(histCurr, strSuffix, binning)
+  x = ROOT.RooRealVar("invmass_" + strKey, histCurr.GetXaxis().GetTitle(), binning[1], binning[2])
+  
+  dicHists[ strKey ][ "fitres" ] = myFitInvMass(histCurr, strKey, x, binning, dicHistoStyle[ strStyleCurr ])
+
+  # -- Dumping
+  print "------ Peak (%s) by RooFit : %f, Err : %f, chi : %f"%(strKey, 
+    dicHists[ strKey ][ "fitres" ]["peak_val"], 
+    dicHists[ strKey ][ "fitres" ]["peak_err"], 
+    dicHists[ strKey ][ "fitres" ]["chi2"])
+  print "------      (sigma : %f, %f)"%(dicHists[ strKey ][ "fitres" ][ "sigma_val" ], 
+    dicHists[ strKey ][ "fitres" ][ "sigma_err" ])
   
   # -- Setting the name and shapes of histogram
-  dicHists[ strKey ][ "fitres" ][ "frame" ].SetName(strKey)
-  dicHists[ strKey ][ "fitres" ][ "frame" ].SetTitle(histCurr.GetTitle())
+  frameCurr = dicHists[ strKey ][ "fitres" ][ "frame" ]
+  #dicHists[ strKey ][ "fitres" ][ "x" ] = x
+  #frameCurr = x.frame()
   
-  setDefAxis(dicHists[ strKey ][ "fitres" ][ "frame" ].GetXaxis(), x_name, 1)
-  setDefAxis(dicHists[ strKey ][ "fitres" ][ "frame" ].GetYaxis(), y_name, 1.2)
-  dicHists[ strKey ][ "fitres" ][ "frame" ].SetMinimum(0)
+  frameCurr.SetName(strKey)
+  frameCurr.SetTitle(histCurr.GetTitle())
+  
+  setDefAxis(frameCurr.GetXaxis(), x_name, 1.0)
+  setDefAxis(frameCurr.GetYaxis(), y_name, 1.2)
+  frameCurr.SetMinimum(0)
   
   # -- Saving the histogram and the fitting curve
   rootFits.cd()
-  dicHists[ strKey ][ "fitres" ][ "frame" ].Write()
+  frameCurr.Write()
 
-  # -- Dumping
-  print "------ Peak (no bkg) by RooFit : %f, Err : %f"%(dicHists[ strKey ][ "fitres" ]["peak_val"], 
-    dicHists[ strKey ][ "fitres" ]["peak_err"])
-  print "------      (sigma : %f, %f)"%(dicHists[ strKey ][ "fitres" ][ "sigma_val" ], 
-    dicHists[ strKey ][ "fitres" ][ "sigma_err" ])
+################################################################
+## Drawing all multiple plots
+################################################################
+for strType in [ "TT_onlytt", "TT_withbkg" ] : 
+  # -- Making a legend
+  leg = ROOT.TLegend(0.76,0.73,0.76+0.20,0.91)
+  leg.SetBorderSize(0)
+  leg.SetNColumns(2)
+  leg.SetTextSize(0.040)
+  leg.SetTextFont(42)
+  leg.SetLineColor(0)
+  leg.SetFillColor(0)
+  leg.SetFillStyle(0)
+  
+  # -- Finding the maximum
+  dMax = 0.0
+  
+  for strKey in dicHists.keys():
+    if "type" not in dicHists[ strKey ] : continue
+    if dicHists[ strKey ][ "type" ] != strType : continue
+    
+    dMaxCurr = dicHists[ strKey ][ "fitres" ][ "frame" ].GetMaximum()
+    if dMax < dMaxCurr : dMax = dMaxCurr
+  
+  # -- Drawing the data plot first
+  dicHists[ strKeyData ][ "fitres" ][ "frame" ].SetMaximum(dMax)
+  
+  canvasMain.cd()
+  dicHists[ strKeyData ][ "fitres" ][ "frame" ].Draw()
+  
+  # -- Adding label into the legend
+  strNameCurve = dicHists[ strKeyData ][ "fitres" ][ "graph" ]
+  curveFit = dicHists[ strKeyData ][ "fitres" ][ "frame" ].findObject(strNameCurve)
+  leg.AddEntry(curveFit, " ", "l")
+  
+  strNameHisto = dicHists[ strKeyData ][ "fitres" ][ "histo" ]
+  histRooFit = dicHists[ strKeyData ][ "fitres" ][ "frame" ].findObject(strNameHisto)
+  leg.AddEntry(histRooFit, dicHists[ strKeyData ][ "label" ], "p")
+  
+  for strKey in dicHists.keys():
+    if "type" not in dicHists[ strKey ] : continue
+    if dicHists[ strKey ][ "type" ] != strType : continue
+    
+    frameX = dicHists[ strKey ][ "fitres" ][ "frame" ]
+    
+    frameX.SetMarkerStyle(ROOT.kStar)
+    
+    canvasMain.cd()
+    frameX.Draw("same")
+    
+    # -- Adding label into the legend
+    strNameCurve = dicHists[ strKey ][ "fitres" ][ "graph" ]
+    curveFit = dicHists[ strKey ][ "fitres" ][ "frame" ].findObject(strNameCurve)
+    leg.AddEntry(curveFit, " ", "l")
+    
+    strNameHisto = dicHists[ strKey ][ "fitres" ][ "histo" ]
+    histRooFit = dicHists[ strKey ][ "fitres" ][ "frame" ].findObject(strNameHisto)
+    leg.AddEntry(histRooFit, dicHists[ strKey ][ "label" ], "p")
+
+    leg.Draw("same")
+
+  canvasMain.SaveAs("fitting_plots_%s.png"%(strType))
 
 ################################################################
 ##  Prepare to draw the linear plot
@@ -185,81 +283,106 @@ for strKey in dicHists.keys() :
   if dDatMaxPeak < dDatVal + dDatErr : dDatMaxPeak = dDatVal + dDatErr
 
 dDatMean = ( dDatMaxPeak + dDatMinPeak ) / 2
-dDatMinPeak = dDatMinPeak - ( dDatMean - dDatMinPeak ) * 1.6
-dDatMaxPeak = dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 1.6
+dDatMinPeak = dDatMinPeak - ( dDatMean - dDatMinPeak ) * 1.0
+dDatMaxPeak = dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 1.0
 print "Range in linear plot : ", dDatMinPeak, dDatMean, dDatMaxPeak
 
 ################################################################
-##  Plotting the linear plot by RooFit (without bkg)
+##  Plotting the calibration curve by RooFit
 ################################################################
-print "##### Fitting by RooFit (no bkg)"
+histPeak_nb = ROOT.TH1D("histPeak_onlyTT", "Peaks (no bkg)", 
+  int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
+histPeak_bk = ROOT.TH1D("histPeak_withbkg", "Peaks", 
+  int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
 
-histPeak_nb = ROOT.TH1D("histPeak_onlyTT", "Peaks (no bkg)", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
-histPeak_nb.SetLineColor(1)
+listDicPeak = [
+  {"name":"no_bkg", "hist":histPeak_nb, "type":"TT_onlytt", 
+    "label":"Without background", "marker":ROOT.kMultiply, "color":8}, 
+  {"name":"bkg", "hist":histPeak_bk, "type":"TT_withbkg", 
+    "label":"With background", "marker":ROOT.kCircle, "color":ROOT.kBlue}
+]
 
-for strKey in dicHists.keys() :
-  if "type" not in dicHists[ strKey ] : continue
-  if dicHists[ strKey ][ "type" ] != "TT_onlytt" : continue
+for dicPeak in listDicPeak : 
+  print "##### Fitting by RooFit (%s)"%(dicPeak[ "name" ])
   
-  dMass = dicHists[ strKey ][ "mass" ]
-  dDatVal = dicHists[ strKey ][ "fitres" ][ "peak_val" ]
-  dDatErr = dicHists[ strKey ][ "fitres" ][ "peak_err" ]
+  histPeak = dicPeak[ "hist" ]
   
-  print dMass, "(" + strKey + ")", dDatVal, dDatErr
-  
-  nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
-  histPeak_nb.SetBinContent(nIdxBin, dDatVal)
-  histPeak_nb.SetBinError(nIdxBin, dDatErr)
+  histPeak.SetLineColor(1)
 
-histPeak_nb.SetMinimum(dDatMinPeak)
-histPeak_nb.SetMaximum(dDatMaxPeak)
+  for strKey in dicHists.keys() :
+    if "type" not in dicHists[ strKey ] : continue
+    if dicHists[ strKey ][ "type" ] != dicPeak[ "type" ] : continue
+    
+    dMass = dicHists[ strKey ][ "mass" ]
+    dDatVal = dicHists[ strKey ][ "fitres" ][ "peak_val" ]
+    dDatErr = dicHists[ strKey ][ "fitres" ][ "peak_err" ]
+    
+    print dMass, "(" + strKey + ")", dDatVal, dDatErr
+    
+    nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
+    histPeak.SetBinContent(nIdxBin, dDatVal)
+    histPeak.SetBinError(nIdxBin, dDatErr)
 
-tf1 = ROOT.TF1("f1_peaks_RooFit_nobkg", "pol1", dBinMinPeak, dBinMaxPeak)
-histPeak_nb.Fit(tf1)
+  histPeak.SetMinimum(dDatMinPeak)
+  histPeak.SetMaximum(dDatMaxPeak)
 
-setDefAxis(histPeak_nb.GetXaxis(), "M_{top} [GeV/c^2]", 1)
-setDefAxis(histPeak_nb.GetYaxis(), x_name, 1.2)
+  tf1 = ROOT.TF1("f1_peaks_RooFit_" + dicPeak[ "name" ], "pol1", dBinMinPeak, dBinMaxPeak)
+  histPeak.Fit(tf1)
 
-rootFits.cd()
-ROOT.gStyle.SetOptFit(1111)
-histPeak_nb.Draw()
-histPeak_nb.Write()
+  setDefAxis(histPeak.GetXaxis(), "M_{top} [GeV/c^2]", 1)
+  setDefAxis(histPeak.GetYaxis(), x_name, 0.9)
+
+  rootFits.cd()
+  histPeak.Draw()
+  histPeak.Write()
 
 ################################################################
-##  Plotting the linear plot by RooFit
+##  Drawing all calibration curves together
 ################################################################
-print "##### Fitting by RooFit (bkg)"
+canvasMain.cd()
 
-histPeak = ROOT.TH1D("histPeak_withbkg", "Peaks", int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
-histPeak.SetLineColor(1)
+# -- Making a legend
+leg = ROOT.TLegend(0.64,0.79,0.64+0.30,0.93)
+leg.SetBorderSize(0)
+#leg.SetNColumns(2)
+leg.SetTextSize(0.040)
+leg.SetTextFont(42)
+leg.SetLineColor(0)
+leg.SetFillColor(0)
+leg.SetFillStyle(0)
 
-for strKey in dicHists.keys() :
-  if "type" not in dicHists[ strKey ] : continue
-  if dicHists[ strKey ][ "type" ] != "TT_withbkg" : continue
+strSign = ""
+
+for dicPeak in listDicPeak : 
+  histPeak = dicPeak[ "hist" ]
   
-  dMass = dicHists[ strKey ][ "mass" ]
-  dDatVal = dicHists[ strKey ][ "fitres" ][ "peak_val" ]
-  dDatErr = dicHists[ strKey ][ "fitres" ][ "peak_err" ]
+  histPeak.SetMarkerStyle(dicPeak[ "marker" ])
+  histPeak.SetMarkerColor(dicPeak[ "color" ])
+  histPeak.GetFunction("f1_peaks_RooFit_" + dicPeak[ "name" ]).SetLineColor(dicPeak[ "color" ])
   
-  print dMass, "(" + strKey + ")", dDatVal, dDatErr
-  
-  nIdxBin = int(( dMass - dBinMinPeak ) / dSizeBin)
-  histPeak.SetBinContent(nIdxBin, dDatVal)
-  histPeak.SetBinError(nIdxBin, dDatErr)
+  ROOT.gStyle.SetOptFit(0)
+  histPeak.Draw(strSign + "E1")
+  strSign = "same"
 
-histPeak.SetMinimum(dDatMinPeak)
-histPeak.SetMaximum(dDatMaxPeak)
+  leg.AddEntry(histPeak, dicPeak[ "label" ], "lp")
 
-tf1 = ROOT.TF1("f1_peaks_RooFit", "pol1", dBinMinPeak, dBinMaxPeak)
-histPeak.Fit(tf1)
+polyData = ROOT.TH1D("histPeak_data", "Data", 
+  int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin), dBinMinPeak, dBinMaxPeak)
 
-setDefAxis(histPeak.GetXaxis(), "M_{top} [GeV/c^2]", 1)
-setDefAxis(histPeak.GetYaxis(), x_name, 1.2)
+for i in range(int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin) + 1) : 
+  polyData.SetBinContent(i, dicHists[ strKeyData ][ "fitres" ][ "peak_val" ])
+  polyData.SetBinError(i, dicHists[ strKeyData ][ "fitres" ][ "peak_err" ])
 
-rootFits.cd()
-ROOT.gStyle.SetOptFit(1111)
-histPeak.Draw()
-histPeak.Write()
+polyData.SetFillColorAlpha(ROOT.kRed, 0.3)
+polyData.SetMarkerStyle(ROOT.kDot)
+
+polyData.Draw("sameE3")
+
+leg.AddEntry(polyData, "Data", "f")
+
+leg.Draw("same")
+
+canvasMain.SaveAs("calibration_cuve.png")
 
 ################################################################
 ##  Everything is over; closing the file
