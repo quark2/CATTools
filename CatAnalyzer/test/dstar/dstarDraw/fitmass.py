@@ -78,7 +78,6 @@ def myFitInvMassWithLandau(hist, strName, x, binning, dicStyle):
   model = sig_pdf
   
   fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save())
-  chi2 = model.createChi2(dh)
   
   top_mass_frame = x.frame()
   strNameHisto = "roofithisto_" + strName
@@ -96,7 +95,7 @@ def myFitInvMassWithLandau(hist, strName, x, binning, dicStyle):
   
   return {"frame":top_mass_frame, "histo":strNameHisto, "graph":strNameCurve, 
     "peak_val":CB_MPV.getVal(), "peak_err":CB_MPV.getError(), 
-    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError(), "chi2":chi2.getVal()}
+    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError(), "chi2":top_mass_frame.chiSquare()}
 
 
 def myFitInvMass(hist, strName, x, binning, dicStyle):
@@ -133,10 +132,10 @@ canvasMain = makeCanvas("canvasMain")
 strKeyData = ""
 
 dicHistoStyle = {
-  "data":    {"label":"Data",   "marker":ROOT.kFullDotLarge, "color":ROOT.kRed,  "line":ROOT.kDashed}, 
-  "1695":    {"label":"169.5",  "marker":ROOT.kMultiply,     "color":8,          "line":ROOT.kSolid}, 
-  "nominal": {"label":"173.07", "marker":ROOT.kCircle,       "color":ROOT.kBlue, "line":ROOT.kSolid}, 
-  "1755":    {"label":"175.5",  "marker":ROOT.kPlus,         "color":ROOT.kPink, "line":ROOT.kSolid}
+  "data":    {"label":"Data",   "marker":ROOT.kFullDotLarge, "color":ROOT.kBlack, "line":ROOT.kDashed}, 
+  "1695":    {"label":"169.5",  "marker":ROOT.kMultiply,     "color":8,           "line":ROOT.kSolid}, 
+  "nominal": {"label":"173.07", "marker":ROOT.kCircle,       "color":ROOT.kBlue,  "line":ROOT.kSolid}, 
+  "1755":    {"label":"175.5",  "marker":ROOT.kPlus,         "color":ROOT.kPink,  "line":ROOT.kSolid}
 }
 
 ################################################################
@@ -177,10 +176,10 @@ for strKey in dicHists.keys():
 
   # -- Dumping
   print "------ Peak (%s) by RooFit : %f, Err : %f, chi : %f"%(strKey, 
-    dicHists[ strKey ][ "fitres" ]["peak_val"], 
-    dicHists[ strKey ][ "fitres" ]["peak_err"], 
-    dicHists[ strKey ][ "fitres" ]["chi2"])
-  print "------      (sigma : %f, %f)"%(dicHists[ strKey ][ "fitres" ][ "sigma_val" ], 
+    dicHists[ strKey ][ "fitres" ][ "peak_val" ], 
+    dicHists[ strKey ][ "fitres" ][ "peak_err" ], 
+    dicHists[ strKey ][ "fitres" ][ "chi2" ])
+  print "------      (sigma (%s) : %f, %f)"%(strKey, dicHists[ strKey ][ "fitres" ][ "sigma_val" ], 
     dicHists[ strKey ][ "fitres" ][ "sigma_err" ])
   
   # -- Setting the name and shapes of histogram
@@ -266,7 +265,7 @@ for strType in [ "TT_onlytt", "TT_withbkg" ] :
 ##  Prepare to draw the linear plot
 ################################################################
 dBinMinPeak = 164.0
-dBinMaxPeak = 180.0
+dBinMaxPeak = 184.0
 dSizeBin = 0.1
 
 dDatMinPeak =  1048576.0
@@ -287,6 +286,9 @@ dDatMinPeak = dDatMinPeak - ( dDatMean - dDatMinPeak ) * 1.0
 dDatMaxPeak = dDatMaxPeak + ( dDatMaxPeak - dDatMean ) * 1.0
 print "Range in linear plot : ", dDatMinPeak, dDatMean, dDatMaxPeak
 
+dTan = 0.0
+dYP  = 0.0
+
 ################################################################
 ##  Plotting the calibration curve by RooFit
 ################################################################
@@ -297,9 +299,9 @@ histPeak_bk = ROOT.TH1D("histPeak_withbkg", "Peaks",
 
 listDicPeak = [
   {"name":"no_bkg", "hist":histPeak_nb, "type":"TT_onlytt", 
-    "label":"Without background", "marker":ROOT.kMultiply, "color":8}, 
+    "label":"Without background", "marker":ROOT.kMultiply, "color":ROOT.kBlue}, 
   {"name":"bkg", "hist":histPeak_bk, "type":"TT_withbkg", 
-    "label":"With background", "marker":ROOT.kCircle, "color":ROOT.kBlue}
+    "label":"With background", "marker":ROOT.kCircle, "color":ROOT.kRed}
 ]
 
 for dicPeak in listDicPeak : 
@@ -328,6 +330,10 @@ for dicPeak in listDicPeak :
 
   tf1 = ROOT.TF1("f1_peaks_RooFit_" + dicPeak[ "name" ], "pol1", dBinMinPeak, dBinMaxPeak)
   histPeak.Fit(tf1)
+  
+  if dicPeak[ "name" ] == "bkg" : 
+    dTan = tf1.GetParameter("p1")
+    dYP  = tf1.GetParameter("p0")
 
   setDefAxis(histPeak.GetXaxis(), "M_{top} [GeV/c^2]", 1)
   setDefAxis(histPeak.GetYaxis(), x_name, 0.9)
@@ -335,6 +341,9 @@ for dicPeak in listDicPeak :
   rootFits.cd()
   histPeak.Draw()
   histPeak.Write()
+
+print "Top mass = %lf +/- %lf"%(( dicHists[ strKeyData ][ "fitres" ][ "peak_val" ] - dYP ) / dTan, 
+  dicHists[ strKeyData ][ "fitres" ][ "peak_err" ] / dTan)
 
 ################################################################
 ##  Drawing all calibration curves together
@@ -373,7 +382,7 @@ for i in range(int(( dBinMaxPeak - dBinMinPeak ) / dSizeBin) + 1) :
   polyData.SetBinContent(i, dicHists[ strKeyData ][ "fitres" ][ "peak_val" ])
   polyData.SetBinError(i, dicHists[ strKeyData ][ "fitres" ][ "peak_err" ])
 
-polyData.SetFillColorAlpha(ROOT.kRed, 0.3)
+polyData.SetFillColorAlpha(ROOT.kBlack, 0.3)
 polyData.SetMarkerStyle(ROOT.kDot)
 
 polyData.Draw("sameE3")
