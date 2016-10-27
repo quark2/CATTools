@@ -29,21 +29,24 @@ step = 1
 channel = 3
 cut = 'tri!=0&&filtered==1'
 # In DYJet, genweight yields negative value in histogram(!!!)
-weight = 'genweight*puweight*mueffweight*eleffweight*tri*topPtWeight'
+weight = 'genweight*puweight*mueffweight*eleffweight*tri'
+weightTopPT = '*topPtWeight'
 binning = [60, 20, 320]
 plotvar = 'll_m'
+strType = ""
 x_name = 'mass [GeV]'
 y_name = 'Events'
 dolog = False
 overflow = False
 binNormalize = False
 suffix = ''
+strTypeSuffix = ""
 
 ################################################################
 ## get input
 ################################################################
 try:
-    opts, args = getopt.getopt(sys.argv[1:],"hdnoc:w:b:p:x:y:a:s:f:",["binNormalize","overflow","cut","weight","binning","plotvar","x_name","y_name","dolog","channel","step","suffix"])
+    opts, args = getopt.getopt(sys.argv[1:],"hdnoa:p:s:c:w:b:t:x:y:f:",["channel","plotvar","step","cut","weight","binning","type","binNormalize","overflow","x_name","y_name","dolog","suffix"])
 except getopt.GetoptError:          
     print 'Usage : ./.py -c <cut> -w <weight> -b <binning> -p <plotvar> -x <x_name> -y <y_name> -d <dolog> -f <suffix>'
     sys.exit(2)
@@ -51,19 +54,21 @@ for opt, arg in opts:
     if opt == '-h':
         print 'Usage : ./topDraw.py -c <cut> -w <weight> -b <binning> -p <plotvar> -x <x_name> -y <y_name> -d <dolog> -f <suffix>'
         sys.exit()
+    elif opt in ("-a", "--channel"):
+        channel = int(arg)
+    elif opt in ("-p", "--plotvar"):
+        plotvar = arg
+    elif opt in ("-s", "--step"):
+        step = int(arg)
     elif opt in ("-c", "--cut"):
         #cut = arg
         cut = "%s&&%s"%(cut,arg)
-    elif opt in ("-a", "--channel"):
-        channel = int(arg)
-    elif opt in ("-s", "--step"):
-        step = int(arg)
     elif opt in ("-w", "--weight"):
         weight = arg
     elif opt in ("-b", "--binning"):
         binning = eval(arg)
-    elif opt in ("-p", "--plotvar"):
-        plotvar = arg
+    elif opt in ("-t", "--type"):
+        strType = arg
     elif opt in ("-x", "--x_name"):
         x_name = arg
     elif opt in ("-y", "--y_name"):
@@ -80,13 +85,58 @@ for opt, arg in opts:
 tname = "cattree/nom"
 
 ################################################################
+## Read type
+################################################################
+if strType != "" :
+  strType = "".join(ch for ch in strType if not ch == ' ')
+
+  for strEntry in strType.split(",") :
+    listOptArg = strEntry.split("=")
+    
+    if listOptArg[ 0 ] == "noTopPtW" : 
+      weightTopPT = ""
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "TTnominal" : 
+      for i in range(len(topMassList)) :
+        if topMassList[ i ] == "TT_powheg" : 
+          topMassList[ i ] = listOptArg[ 1 ]
+          break
+      
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ] + "_" + listOptArg[ 1 ]
+    elif listOptArg[ 0 ] == "JES_Up" : 
+      tname = "cattree/jes_u"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "JES_Down" : 
+      tname = "cattree/jes_d"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "JER_Up" : 
+      tname = "cattree/jer_u"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "JER_Down" : 
+      tname = "cattree/jer_d"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "El_Up" : 
+      tname = "cattree/el_u"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "El_Down" : 
+      tname = "cattree/el_d"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "Mu_Up" : 
+      tname = "cattree/mu_u"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+    elif listOptArg[ 0 ] == "Mu_Down" : 
+      tname = "cattree/mu_d"
+      strTypeSuffix = strTypeSuffix + "_" + listOptArg[ 0 ]
+      
+
+################################################################
 ## cut define
 ################################################################
 #if   channel == 1: ttother_tcut = "!(gen_partonChannel==2 && ((gen_partonMode1==1 && gen_partonMode2==2) || (gen_partonMode1==2 && gen_partonMode2==1)))"
 #elif channel == 2: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==2 && gen_partonMode2==2))"
 #elif channel == 3: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==1 && gen_partonMode2==1))"
 stepch_tcut = 'step>=%i%s'%(step, "&&channel==%i"%(channel) if channel != 0 else "")
-tcut = '(%s&&%s)*(%s)'%(stepch_tcut,cut,weight)
+tcut = '(%s&&%s)*(%s)'%(stepch_tcut,cut,weight + weightTopPT)
 #ttother_tcut = '(%s&&%s&&%s)*(%s)'%(stepch_tcut,cut,ttother_tcut,weight)
 rd_tcut = '%s&&%s'%(stepch_tcut,cut)
 print "TCut =",tcut
@@ -110,7 +160,7 @@ dyratio=json.load(open('./DYFactor.json'))
 ################################################################
 ## Initializing the result root file
 ################################################################
-strFilename = "invMass_%s%s"%(plotvar,suffix)
+strFilename = "invMass_%s%s%s"%(plotvar,suffix,strTypeSuffix)
 outMassHist = ROOT.TFile.Open(strFilename + ".root","RECREATE")
 dicListHist = {"rootfilename":strFilename + ".root", "x_name":x_name, "y_name":y_name, "binning":binning}
 
@@ -174,8 +224,17 @@ dicListHist[bkgs.GetName()] = {"type":"bkg"}
 print "bkg entries: ",bkgs.GetEntries()
 
 ################################################################
-##  Saving TT samples
+##  Saving TT samples with side-band
 ################################################################
+"""
+arrInfoSideBandWin = [
+  {"name":"center", "mv":0.0, }, 
+]
+
+for dMoveWin in [-1.0, 0.0, 1.0]:
+  dicInfoWin = 
+"""
+
 for topMass in topMassList :
   massValue = topMass.split("mtop")[-1] if ( topMass.find("mtop") != -1 ) else "nominal"
   sum_hs =  hs_bkg.Clone()
@@ -191,7 +250,8 @@ for topMass in topMassList :
   wentries = tfile.Get("cattree/nevents").Integral()
   scale = scale/wentries
   print topMass, scale, wentries, colour, title
-   
+  
+  #for dicInfoWin in arrInfoSideBandWin:
   mchist = makeTH1(rfname, tname, title, binning, plotvar, tcut, scale)
   mchist.SetLineColor(colour)
   mchist.SetFillColor(colour)

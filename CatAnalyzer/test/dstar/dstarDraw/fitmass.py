@@ -111,17 +111,23 @@ try:
     print "Usage : %s [rootfilename]"
     sys.exit(2)
 
-  fileDicHists = open(sys.argv[1])
+  fileDicHists = open(sys.argv[ 1 ])
   dicHists = json.load(fileDicHists)
   fileDicHists.close()
 except IOError:
-    print "Usage : %s [rootfilename]  # rootfilename must be correct"
-    sys.exit(2)
+  print "Usage : %s [rootfilename]  # rootfilename must be correct"
+  sys.exit(2)
+
+listPartPath = sys.argv[ 1 ].split("/")
+strPathPos = ""
+
+for i in range(len(listPartPath) - 1) :
+  strPathPos = strPathPos + listPartPath[ i ] + "/"
 
 ################################################################
 ## Initializing the result root file
 ################################################################
-rootHists = ROOT.TFile.Open(dicHists["rootfilename"])
+rootHists = ROOT.TFile.Open(strPathPos + dicHists["rootfilename"])
 rootFits = ROOT.TFile.Open("fittings_" + dicHists["rootfilename"],"RECREATE")
 
 binning = dicHists["binning"]
@@ -259,7 +265,7 @@ for strType in [ "TT_onlytt", "TT_withbkg" ] :
 
     leg.Draw("same")
 
-  canvasMain.SaveAs("fitting_plots_%s.png"%(strType))
+  canvasMain.SaveAs("fitting_plots_%s_%s.png"%(dicHists["rootfilename"], strType))
 
 ################################################################
 ##  Prepare to draw the linear plot
@@ -391,7 +397,7 @@ leg.AddEntry(polyData, "Data", "f")
 
 leg.Draw("same")
 
-canvasMain.SaveAs("calibration_cuve.png")
+canvasMain.SaveAs("calibration_cuve_%s.png"%(dicHists["rootfilename"]))
 
 ################################################################
 ##  Everything is over; closing the file

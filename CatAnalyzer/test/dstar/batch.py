@@ -2,7 +2,7 @@
 
 import os,sys
 
-strDest = "/store/user/quark2930/test2"
+strDest = "/store/user/quark2930/dilepton_mass_v801_16092901"
 
 if ( len(sys.argv) != 2) : 
   print "Wrong argument"

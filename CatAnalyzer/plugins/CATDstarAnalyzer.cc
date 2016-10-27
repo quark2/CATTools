@@ -459,8 +459,8 @@ void CATDstarAnalyzer::resetBrCustom()
 
   b_dstar_lepSV_lowM1.clear();
   b_dstar_lepSV_dRM1.clear();
-  b_dstar_lepSV_correctM.clear();
   b_dstar_opCharge_M.clear();
+  b_dstar_lepSV_correctM.clear();
 
 }
 
