@@ -161,7 +161,7 @@ dyratio=json.load(open('./DYFactor.json'))
 ## Initializing the result root file
 ################################################################
 strFilename = "invMass_%s%s%s"%(plotvar,suffix,strTypeSuffix)
-outMassHist = ROOT.TFile.Open(strFilename + ".root","RECREATE")
+outMassHist = ROOT.TFile.Open("invmass/" + strFilename + ".root","RECREATE")
 dicListHist = {"rootfilename":strFilename + ".root", "x_name":x_name, "y_name":y_name, "binning":binning}
 
 ################################################################

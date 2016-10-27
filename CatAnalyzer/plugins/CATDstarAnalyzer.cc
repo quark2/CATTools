@@ -27,8 +27,8 @@ class CATDstarAnalyzer : public dileptonCommon {
     std::vector<float> b_d0_dau2_q;
     std::vector<float> b_d0_vProb;
 
-    std::vector<float> b_d0_lepSV_lowM1;
-    std::vector<float> b_d0_lepSV_dRM1;
+    std::vector<float> b_d0_lepSV_lowM;
+    std::vector<float> b_d0_lepSV_dRM;
     std::vector<float> b_d0_lepSV_correctM; // for test
 
     std::vector<bool> b_dstar_true, b_dstar_fit;
@@ -40,8 +40,8 @@ class CATDstarAnalyzer : public dileptonCommon {
     std::vector<float> b_dstar_vProb;
     std::vector<float> b_dstar_diffMass;
 
-    std::vector<float> b_dstar_lepSV_lowM1;
-    std::vector<float> b_dstar_lepSV_dRM1;
+    std::vector<float> b_dstar_lepSV_lowM;
+    std::vector<float> b_dstar_lepSV_dRM;
     std::vector<float> b_dstar_opCharge_M;
     std::vector<float> b_dstar_lepSV_correctM;
 
@@ -111,8 +111,8 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   tr->Branch("d0_dau1_q","std::vector<float>",&b_d0_dau1_q);
   tr->Branch("d0_dau2_q","std::vector<float>",&b_d0_dau2_q);
   
-  tr->Branch("d0_lepSV_lowM1","std::vector<float>",&b_d0_lepSV_lowM1);
-  tr->Branch("d0_lepSV_dRM1","std::vector<float>",&b_d0_lepSV_dRM1);
+  tr->Branch("d0_lepSV_lowM","std::vector<float>",&b_d0_lepSV_lowM);
+  tr->Branch("d0_lepSV_dRM","std::vector<float>",&b_d0_lepSV_dRM);
   tr->Branch("d0_lepSV_correctM","std::vector<float>",&b_d0_lepSV_correctM); // for test
 
 
@@ -137,8 +137,8 @@ void CATDstarAnalyzer::setBranchCustom(TTree* tr, int sys) {
   tr->Branch("dstar_vProb","std::vector<float>",&b_dstar_vProb);
   tr->Branch("dstar_diffMass","std::vector<float>",&b_dstar_diffMass);
   
-  tr->Branch("dstar_lepSV_lowM1","std::vector<float>",&b_dstar_lepSV_lowM1);
-  tr->Branch("dstar_lepSV_dRM1","std::vector<float>",&b_dstar_lepSV_dRM1);
+  tr->Branch("dstar_lepSV_lowM","std::vector<float>",&b_dstar_lepSV_lowM);
+  tr->Branch("dstar_lepSV_dRM","std::vector<float>",&b_dstar_lepSV_dRM);
   tr->Branch("dstar_opCharge_M","std::vector<float>",&b_dstar_opCharge_M);
   tr->Branch("dstar_lepSV_correctM","std::vector<float>",&b_dstar_lepSV_correctM);
 
@@ -339,8 +339,8 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
     fDeltaPhi = b_lep2.Phi() - vecDMMom.Phi();
     fSqrtdRMLep2 = fDeltaEta * fDeltaEta + fDeltaPhi * fDeltaPhi;
     
-    b_d0_lepSV_lowM1.push_back(( fMDMLep1 >= fMDMLep2 ? fMDMLep1 : fMDMLep2 ));
-    b_d0_lepSV_dRM1.push_back(( fSqrtdRMLep1 >= fSqrtdRMLep2 ? fMDMLep1 : fMDMLep2 ));
+    b_d0_lepSV_lowM.push_back(( fMDMLep1 >= fMDMLep2 ? fMDMLep1 : fMDMLep2 ));
+    b_d0_lepSV_dRM.push_back(( fSqrtdRMLep1 >= fSqrtdRMLep2 ? fMDMLep1 : fMDMLep2 ));
   }
   for( auto& x : *dstars) {
     dstar_count++;
@@ -419,8 +419,8 @@ void CATDstarAnalyzer::analyzeCustom(const edm::Event& iEvent, const edm::EventS
     fDeltaPhi = b_lep2.Phi() - vecDMMom.Phi();
     fSqrtdRMLep2 = fDeltaEta * fDeltaEta + fDeltaPhi * fDeltaPhi;
     
-    b_dstar_lepSV_lowM1.push_back(( fMDMLep1 >= fMDMLep2 ? fMDMLep1 : fMDMLep2 ));
-    b_dstar_lepSV_dRM1.push_back(( fSqrtdRMLep1 >= fSqrtdRMLep2 ? fMDMLep1 : fMDMLep2 ));
+    b_dstar_lepSV_lowM.push_back(( fMDMLep1 >= fMDMLep2 ? fMDMLep1 : fMDMLep2 ));
+    b_dstar_lepSV_dRM.push_back(( fSqrtdRMLep1 >= fSqrtdRMLep2 ? fMDMLep1 : fMDMLep2 ));
     b_dstar_opCharge_M.push_back(( fQDM * b_lep1_pid <= 0.0 ? fMDMLep1 : fMDMLep2 ));
     
     if ( runOnMC ) {
@@ -447,8 +447,8 @@ void CATDstarAnalyzer::resetBrCustom()
   b_d0_dau2_q.clear();
   b_d0_vProb.clear();
 
-  b_d0_lepSV_lowM1.clear();
-  b_d0_lepSV_dRM1.clear();
+  b_d0_lepSV_lowM.clear();
+  b_d0_lepSV_dRM.clear();
   b_d0_lepSV_correctM.clear();
 
   b_dstar_dau1_q.clear();
@@ -457,8 +457,8 @@ void CATDstarAnalyzer::resetBrCustom()
   b_dstar_vProb.clear();
   b_dstar_diffMass.clear();
 
-  b_dstar_lepSV_lowM1.clear();
-  b_dstar_lepSV_dRM1.clear();
+  b_dstar_lepSV_lowM.clear();
+  b_dstar_lepSV_dRM.clear();
   b_dstar_opCharge_M.clear();
   b_dstar_lepSV_correctM.clear();
 
