@@ -2,7 +2,12 @@
 
 import os,sys
 
-strDest = "/store/user/quark2930/dilepton_mass_v801_16102701"
+#strDest = "/store/user/quark2930/dilepton_mass_v801_16102701"
+strFilenameRootdir = "rootdirPath.txt"
+
+fRootDir = open(strFilenameRootdir, "r")
+strDest = fRootDir.readline().split("\r")[0].split("\n")[0]
+fRootDir.close()
 
 if ( len(sys.argv) != 2) : 
   print "Wrong argument"

@@ -4,6 +4,15 @@ from CATTools.CatAnalyzer.histoHelper import *
 import DYestimation
 ROOT.gROOT.SetBatch(True)
 
+#rootfileDir = "/xrootd/store/user/tt8888tt/v763_desy/TtbarDiLeptonAnalyzer_"
+#rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
+#rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092901/cattree_"
+strFilenameRootdir = "../rootdirPath.txt"
+
+fRootDir = open(strFilenameRootdir, "r")
+rootfileDir = "/xrootd" + fRootDir.readline().split("\r")[0].split("\n")[0] + "/cattree_"
+fRootDir.close()
+
 
 datalumi = 15.92 # Run2016 B & C & D & E, v8-0-1 (F and latters cannot be used; ICHEP)
 CMS_lumi.lumi_sqrtS = "%.1f fb^{-1}, #sqrt{s} = 13 TeV"%(datalumi)
@@ -13,9 +22,6 @@ datalumi = datalumi*1000 # due to fb
 topMassList = ['TT_powheg_mtop1695','TT_powheg_mtop1755','TT_powheg'] # it will be filled fully
 mcfilelist = ['WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW', 'WZ', 'DYJets', 'DYJets_10to50']
 rdfilelist = ['MuonEG_Run2016','DoubleEG_Run2016','DoubleMuon_Run2016']
-#rootfileDir = "/xrootd/store/user/tt8888tt/v763_desy/TtbarDiLeptonAnalyzer_"
-#rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
-rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092901/cattree_"
 channel_name = ['Combined', 'MuEl', 'ElEl', 'MuMu']
 
 dMassNomial = 173.07
@@ -48,7 +54,7 @@ strTypeSuffix = ""
 try:
     opts, args = getopt.getopt(sys.argv[1:],"hdnoa:p:s:c:w:b:t:x:y:f:",["channel","plotvar","step","cut","weight","binning","type","binNormalize","overflow","x_name","y_name","dolog","suffix"])
 except getopt.GetoptError:          
-    print 'Usage : ./.py -c <cut> -w <weight> -b <binning> -p <plotvar> -x <x_name> -y <y_name> -d <dolog> -f <suffix>'
+    print 'Usage : ./massPlot.py -c <cut> -w <weight> -b <binning> -p <plotvar> -x <x_name> -y <y_name> -d <dolog> -f <suffix>'
     sys.exit(2)
 for opt, arg in opts:
     if opt == '-h':
@@ -162,7 +168,8 @@ dyratio=json.load(open('./DYFactor.json'))
 ################################################################
 strFilename = "invMass_%s%s%s"%(plotvar,suffix,strTypeSuffix)
 outMassHist = ROOT.TFile.Open("invmass/" + strFilename + ".root","RECREATE")
-dicListHist = {"rootfilename":strFilename + ".root", "x_name":x_name, "y_name":y_name, "binning":binning}
+dicListHist = {"rootfilename":strFilename + ".root", 
+  "x_name":x_name, "y_name":y_name, "binning":binning, "Gen":0}
 
 ################################################################
 ## Saving MC histograms for backgrounds
@@ -287,18 +294,32 @@ for topMass in topMassList :
   
   dicListHist[masshist.GetName()] = {"type":"TT_withbkg", "mass":dMassCurr}
 
+if "correctM" in plotvar:
+  dicListHist[ "Gen" ] = 1
+
 ################################################################
 ##  Saving data samples
 ################################################################
 #output = ROOT.TFile.Open("data_%s.root"%(plotvar),"RECREATE")
+plotvarData = plotvar
+rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
+
+if "correctM" in plotvar: 
+  if "d0" in plotvar: 
+    plotvarData = "d0_lepSV_lowM"
+    rdtcut = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&abs(d0.M()-1.8648)<0.040")
+  else:
+    plotvarData = "dstar_lepSV_lowM"
+    rdtcut = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&dstar_L3D>0.2&&dstar_LXY>0.1&&abs(dstar_diffMass-0.145)<0.01")
+
 if len(binning) == 3:
   rdhist = ROOT.TH1D("hist_data", "RealData in 2016", binning[0], binning[1], binning[2])
 else:
   rdhist = ROOT.TH1D("hist_data", "RealData in 2016", len(binning)-1, array.array('f', binning))
 for i, rdfile in enumerate(rdfilelist):
   rfname = rootfileDir + rdfile +".root"
-  rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
-  rdhist_tmp = makeTH1(rfname, tname, 'data', binning, plotvar, rdtcut)
+  #rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
+  rdhist_tmp = makeTH1(rfname, tname, 'data', binning, plotvarData, rdtcut)
   rdhist.SetLineColor(1)
   rdhist.Add(rdhist_tmp)
 #overflow
@@ -322,7 +343,7 @@ outMassHist.Close()
 ##  Saving informations about histograms
 ################################################################
 
-fileDicHist = open(strFilename + ".json", "w")
+fileDicHist = open("invmass/" + strFilename + ".json", "w")
 fileDicHist.write(json.dumps(dicListHist))
 fileDicHist.close()
 
