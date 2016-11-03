@@ -24,7 +24,7 @@ mcfilelist = ['WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW', 'WZ', 'DYJet
 rdfilelist = ['MuonEG_Run2016','DoubleEG_Run2016','DoubleMuon_Run2016']
 channel_name = ['Combined', 'MuEl', 'ElEl', 'MuMu']
 
-dMassNomial = 173.07
+dMassNomial = 172.50
 
 datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json" % os.environ['CMSSW_BASE']))
 
@@ -32,10 +32,12 @@ datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json
 ## defalts
 ################################################################
 step = 1
-channel = 3
-cut = 'tri!=0&&filtered==1'
+channel = 0
+#cut = 'tri!=0&&filtered==1'
+cut = '(channel != 3 || tri!=0)'
 # In DYJet, genweight yields negative value in histogram(!!!)
-weight = 'genweight*puweight*mueffweight*eleffweight*tri'
+#weight = 'genweight*puweight*mueffweight*eleffweight*tri'
+weight = 'genweight*puweight*mueffweight*eleffweight*(channel==3 ? tri : 1)'
 weightTopPT = '*topPtWeight'
 binning = [60, 20, 320]
 plotvar = 'll_m'
@@ -89,6 +91,7 @@ for opt, arg in opts:
         suffix = "_"+arg
 
 tname = "cattree/nom"
+tnameData = tname
 
 ################################################################
 ## Read type
@@ -252,7 +255,7 @@ for topMass in topMassList :
 
   dMassCurr = int(massValue) * 0.1 if massValue != "nominal" else dMassNomial
 
-  rfname = rootfileDir + topMass +".root"
+  rfname = rootfileDir + topMass + ".root"
   tfile = ROOT.TFile(rfname)
   wentries = tfile.Get("cattree/nevents").Integral()
   scale = scale/wentries
@@ -302,15 +305,15 @@ if "correctM" in plotvar:
 ################################################################
 #output = ROOT.TFile.Open("data_%s.root"%(plotvar),"RECREATE")
 plotvarData = plotvar
-rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
+rdtcutPre = '%s&&%s'%(stepch_tcut,cut)
 
 if "correctM" in plotvar: 
   if "d0" in plotvar: 
     plotvarData = "d0_lepSV_lowM"
-    rdtcut = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&abs(d0.M()-1.8648)<0.040")
+    rdtcutPre = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&abs(d0.M()-1.8648)<0.040")
   else:
     plotvarData = "dstar_lepSV_lowM"
-    rdtcut = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&dstar_L3D>0.2&&dstar_LXY>0.1&&abs(dstar_diffMass-0.145)<0.01")
+    rdtcutPre = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&dstar_L3D>0.2&&dstar_LXY>0.1&&abs(dstar_diffMass-0.145)<0.01")
 
 if len(binning) == 3:
   rdhist = ROOT.TH1D("hist_data", "RealData in 2016", binning[0], binning[1], binning[2])
@@ -319,7 +322,8 @@ else:
 for i, rdfile in enumerate(rdfilelist):
   rfname = rootfileDir + rdfile +".root"
   #rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
-  rdhist_tmp = makeTH1(rfname, tname, 'data', binning, plotvarData, rdtcut)
+  rdtcut = 'channel==%d&&%s'%((i+1),rdtcutPre)
+  rdhist_tmp = makeTH1(rfname, tnameData, 'data', binning, plotvarData, rdtcut)
   rdhist.SetLineColor(1)
   rdhist.Add(rdhist_tmp)
 #overflow

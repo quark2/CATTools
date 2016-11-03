@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import ROOT, CATTools.CatAnalyzer.CMS_lumi, json, os, getopt, sys, copy
+import types, ROOT, CATTools.CatAnalyzer.CMS_lumi, json, os, getopt, sys, copy
 from CATTools.CatAnalyzer.histoHelper import *
 import DYestimation
 ROOT.gROOT.SetBatch(True)
@@ -21,7 +21,8 @@ def myGetPosMaxHist(hist, nNumBin):
 
 
 # -- For half-Gaussian distribution
-def myFitInvMassWithHalfGaussian(hist, suffix, binning):
+"""
+def myFitInvMassWithHalfGaussianRuined(hist, suffix, binning):
   dSizeBin = 1.0 * ( binning[2] - binning[1] ) / binning[0]
   dXPeak = binning[1] + myGetPosMaxHist(hist, binning[0]) * dSizeBin
   dMaxFitRange = dXPeak + 4 * dSizeBin
@@ -54,10 +55,49 @@ def myFitInvMassWithHalfGaussian(hist, suffix, binning):
   
   return {"frame":top_mass_frame, "peak_val":CB_mean.getVal(), "peak_err":CB_mean.getError(), 
     "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError()}
+"""
+
+def myFitInvMassWithHalfGaussian(hist, strName, x, binning, dicStyle):
+  tf1 = ROOT.TF1("f1_fit","gaus", binning[1], binning[2])
+  hist.Fit(tf1)
+  
+  #x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
+  xfitarg = ROOT.RooArgList(x, "invmass")
+  dh = ROOT.RooDataHist("dh","data histogram", xfitarg, hist)
+  
+  dSigma = tf1.GetParameter(2)
+  dSigmaError = tf1.GetParError(2) * 10.0
+
+  CB_MPV    = ROOT.RooRealVar("mean" + dicStyle[ "suffix" ], "mean" + dicStyle[ "suffix" ], 
+    tf1.GetParameter(1), binning[1], binning[2])
+  CB_sigma  = ROOT.RooRealVar("sigma" + dicStyle[ "suffix" ], "sigma" + dicStyle[ "suffix" ], 
+    dSigma, dSigma - dSigmaError, dSigma + dSigmaError)
+  
+  sig_pdf   = ROOT.RooGaussian("sig_fit","signal p.d.f", x, CB_MPV, CB_sigma)
+  model = sig_pdf
+  
+  fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save())
+  
+  top_mass_frame = x.frame()
+  strNameHisto = "roofithisto_" + strName
+  dh.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameHisto), 
+    ROOT.RooFit.MarkerColor(dicStyle[ "color" ]), ROOT.RooFit.MarkerStyle(dicStyle[ "marker" ]))
+  
+  #model.paramOn(top_mass_frame, ROOT.RooFit.Format("NELU", ROOT.RooFit.AutoPrecision(2)), 
+  #  ROOT.RooFit.Layout(0.1, 0.4, 0.9))
+
+  strNameCurve = "fittingcurve_" + strName
+  model.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameCurve), 
+    ROOT.RooFit.LineColor(dicStyle[ "color" ]), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
+  model.plotOn(top_mass_frame, ROOT.RooFit.Components(ROOT.RooArgSet(sig_pdf)),
+    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
+  
+  return {"frame":top_mass_frame, "histo":strNameHisto, "graph":strNameCurve, 
+    "peak_val":CB_MPV.getVal(), "peak_err":CB_MPV.getError(), 
+    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError(), "chi2":top_mass_frame.chiSquare()}
 
 
 # -- For Landau distribution
-#def myFitInvMassWithLandau(hist, x, binning, marker, color, suffix):
 def myFitInvMassWithLandau(hist, strName, x, binning, dicStyle):
   tf1 = ROOT.TF1("f1_fit","landau", binning[1], binning[2])
   hist.Fit(tf1)
@@ -148,7 +188,7 @@ dicHistoStyle = {
 ##  Getting peaks of TT samples
 ################################################################
 for strKey in dicHists.keys():
-  if "type" not in dicHists[ strKey ] : continue
+  if type(dicHists[ strKey ]) != types.DictType or "type" not in dicHists[ strKey ] : continue
   if dicHists[ strKey ][ "type" ] not in ["TT_onlytt", "TT_withbkg", "data"] : continue
   
   if dicHists[ strKey ][ "type" ] == "data" : strKeyData = strKey
@@ -178,7 +218,14 @@ for strKey in dicHists.keys():
   
   x = ROOT.RooRealVar("invmass_" + strKey, histCurr.GetXaxis().GetTitle(), binning[1], binning[2])
   
-  dicHists[ strKey ][ "fitres" ] = myFitInvMass(histCurr, strKey, x, binning, dicHistoStyle[ strStyleCurr ])
+  if "Gen" not in dicHists or dicHists[ "Gen" ] == 0: 
+    print "##### Using Landau distribution #####"
+    dicHists[ strKey ][ "fitres" ] = myFitInvMassWithLandau(histCurr, strKey, 
+      x, binning, dicHistoStyle[ strStyleCurr ])
+  else:
+    print "##### Using Gaussian distribution #####"
+    dicHists[ strKey ][ "fitres" ] = myFitInvMassWithHalfGaussian(histCurr, strKey, 
+      x, binning, dicHistoStyle[ strStyleCurr ])
 
   # -- Dumping
   print "------ Peak (%s) by RooFit : %f, Err : %f, chi : %f"%(strKey, 
@@ -222,7 +269,7 @@ for strType in [ "TT_onlytt", "TT_withbkg" ] :
   dMax = 0.0
   
   for strKey in dicHists.keys():
-    if "type" not in dicHists[ strKey ] : continue
+    if type(dicHists[ strKey ]) != types.DictType or "type" not in dicHists[ strKey ] : continue
     if dicHists[ strKey ][ "type" ] != strType : continue
     
     dMaxCurr = dicHists[ strKey ][ "fitres" ][ "frame" ].GetMaximum()
@@ -244,7 +291,7 @@ for strType in [ "TT_onlytt", "TT_withbkg" ] :
   leg.AddEntry(histRooFit, dicHists[ strKeyData ][ "label" ], "p")
   
   for strKey in dicHists.keys():
-    if "type" not in dicHists[ strKey ] : continue
+    if type(dicHists[ strKey ]) != types.DictType or "type" not in dicHists[ strKey ] : continue
     if dicHists[ strKey ][ "type" ] != strType : continue
     
     frameX = dicHists[ strKey ][ "fitres" ][ "frame" ]
@@ -278,7 +325,7 @@ dDatMinPeak =  1048576.0
 dDatMaxPeak = -1048576.0
 
 for strKey in dicHists.keys() :
-  if "type" not in dicHists[ strKey ] : continue
+  if type(dicHists[ strKey ]) != types.DictType or "type" not in dicHists[ strKey ] : continue
   if dicHists[ strKey ][ "type" ] not in ["TT_onlytt", "TT_withbkg"] : continue
   
   dDatVal = dicHists[ strKey ][ "fitres" ][ "peak_val" ]
@@ -318,7 +365,7 @@ for dicPeak in listDicPeak :
   histPeak.SetLineColor(1)
 
   for strKey in dicHists.keys() :
-    if "type" not in dicHists[ strKey ] : continue
+    if type(dicHists[ strKey ]) != types.DictType or "type" not in dicHists[ strKey ] : continue
     if dicHists[ strKey ][ "type" ] != dicPeak[ "type" ] : continue
     
     dMass = dicHists[ strKey ][ "mass" ]
