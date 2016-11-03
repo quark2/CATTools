@@ -310,10 +310,10 @@ rdtcutPre = '%s&&%s'%(stepch_tcut,cut)
 if "correctM" in plotvar: 
   if "d0" in plotvar: 
     plotvarData = "d0_lepSV_lowM"
-    rdtcutPre = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&abs(d0.M()-1.8648)<0.040")
+    rdtcutPre = "%s&&%s"%(rdtcutPre, "d0_L3D>0.2&&d0_LXY>0.1&&abs(d0.M()-1.8648)<0.040")
   else:
     plotvarData = "dstar_lepSV_lowM"
-    rdtcutPre = "%s&&%s"%(rdtcut, "d0_L3D>0.2&&d0_LXY>0.1&&dstar_L3D>0.2&&dstar_LXY>0.1&&abs(dstar_diffMass-0.145)<0.01")
+    rdtcutPre = "%s&&%s"%(rdtcutPre, "d0_L3D>0.2&&d0_LXY>0.1&&dstar_L3D>0.2&&dstar_LXY>0.1&&abs(dstar_diffMass-0.145)<0.01")
 
 if len(binning) == 3:
   rdhist = ROOT.TH1D("hist_data", "RealData in 2016", binning[0], binning[1], binning[2])
