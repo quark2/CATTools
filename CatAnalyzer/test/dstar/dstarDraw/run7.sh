@@ -20,8 +20,8 @@ date
 ./run6.sh "Mu_Up"; ./wait.sh "noNotification"; echo "Muon up is done"
 ./run6.sh "Mu_Down"; ./wait.sh "noNotification"; echo "Muon down is done"
 
-./massPlot.py -s 0 -b [30,0,150] -p 'd0_lepSV_correctM' -x 'M_{l+D0} [GeV/c^2]' >> res_003.txt &
-./massPlot.py -s 0 -b [30,0,150] -p 'dstar_lepSV_correctM' -x 'M_{l+D^{*}} [GeV/c^2]' >> res_130.txt &
+./massPlot.py -s 0 -b [30,0,150] -p 'd0_lepSV_correctM' -x 'M_{l+D0} [GeV/c^2]' >> invmass/res_003.txt &
+./massPlot.py -s 0 -b [30,0,150] -p 'dstar_lepSV_correctM' -x 'M_{l+D^{*}} [GeV/c^2]' >> invmass/res_130.txt &
 ./wait.sh
 echo "Gen level is done"
 

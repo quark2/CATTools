@@ -168,7 +168,7 @@ for i in range(len(listPartPath) - 1) :
 ## Initializing the result root file
 ################################################################
 rootHists = ROOT.TFile.Open(strPathPos + dicHists["rootfilename"])
-rootFits = ROOT.TFile.Open("fittings_" + dicHists["rootfilename"],"RECREATE")
+rootFits = ROOT.TFile.Open("fitting_results/fittings_" + dicHists["rootfilename"],"RECREATE")
 
 binning = dicHists["binning"]
 x_name = dicHists["x_name"]
@@ -312,7 +312,7 @@ for strType in [ "TT_onlytt", "TT_withbkg" ] :
 
     leg.Draw("same")
 
-  canvasMain.SaveAs("fitting_plots_%s_%s.png"%(dicHists["rootfilename"], strType))
+  canvasMain.SaveAs("fitting_results/fitting_plots_%s_%s.png"%(dicHists["rootfilename"], strType))
 
 ################################################################
 ##  Prepare to draw the linear plot
@@ -444,7 +444,7 @@ leg.AddEntry(polyData, "Data", "f")
 
 leg.Draw("same")
 
-canvasMain.SaveAs("calibration_cuve_%s.png"%(dicHists["rootfilename"]))
+canvasMain.SaveAs("fitting_results/calibration_cuve_%s.png"%(dicHists["rootfilename"]))
 
 ################################################################
 ##  Everything is over; closing the file
