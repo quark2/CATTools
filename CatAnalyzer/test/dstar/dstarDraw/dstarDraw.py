@@ -3,6 +3,17 @@ import ROOT, CATTools.CatAnalyzer.CMS_lumi, json, os, getopt, sys
 from CATTools.CatAnalyzer.histoHelper import *
 import DYestimation
 ROOT.gROOT.SetBatch(True)
+
+#rootfileDir = "/xrootd/store/user/tt8888tt/v763_desy/TtbarDiLeptonAnalyzer_"
+#rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
+#rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092901/cattree_"
+strFilenameRootdir = "../rootdirPath.txt"
+
+fRootDir = open(strFilenameRootdir, "r")
+rootfileDir = "/xrootd" + fRootDir.readline().split("\r")[0].split("\n")[0] + "/cattree_"
+fRootDir.close()
+
+
 '''
 dstarDraw.py -a 1 -s 1 -c 'tri==1&&filtered==1' -b [40,0,40] -p nvertex -x 'no. vertex' &
 dstarDraw.py -a 1 -s 1 -b [100,-3,3] -p lep1_eta,lep2_eta -x '#eta' &
@@ -13,9 +24,6 @@ datalumi = datalumi*1000 # due to fb
 CMS_lumi.extraText   = "Private work"
 mcfilelist = ['TT_powheg', 'WJets', 'SingleTbar_tW', 'SingleTop_tW', 'ZZ', 'WW', 'WZ', 'DYJets', 'DYJets_10to50']
 rdfilelist = ['MuonEG_Run2016','DoubleEG_Run2016','DoubleMuon_Run2016']
-#rootfileDir = "/xrootd/store/user/tt8888tt/v763_desy/TtbarDiLeptonAnalyzer_"
-#rootfileDir = "/cms/scratch/geonmo/for2016KPS_Ana/src/CATTools/CatAnalyzer/test/cattools/cattree_"
-rootfileDir = "/xrootd/store/user/quark2930/dilepton_mass_v801_16092901/cattree_"
 channel_name = ['Combined', 'MuEl', 'ElEl', 'MuMu']
 
 datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json" % os.environ['CMSSW_BASE']))
