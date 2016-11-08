@@ -306,7 +306,7 @@ if "correctM" in plotvar:
 ################################################################
 #output = ROOT.TFile.Open("data_%s.root"%(plotvar),"RECREATE")
 plotvarData = plotvar
-rdtcutPre = '%s&&%s'%(stepch_tcut,cut)
+rdtcutPre = '%s&&%s'%(stepch_tcut, "&&" + cut if cut != "" else "")
 
 if "correctM" in plotvar: 
   if "d0" in plotvar: 

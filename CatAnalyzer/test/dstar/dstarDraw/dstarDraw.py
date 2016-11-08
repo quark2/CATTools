@@ -40,7 +40,7 @@ datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json
 treename = 'nom'
 step = 1
 channel = 0
-cut = '(channel == 3 ? tri!=0 : 1 == 1)'
+cut = ''
 #cut = '(channel != 3 || tri!=0)'
 #cut = 'tri!=0&&filtered==1'
 weight = 'genweight*puweight*mueffweight*eleffweight*(channel==3 ? tri : 1)*topPtWeight'
@@ -168,8 +168,7 @@ else:
 for i, rdfile in enumerate(rdfilelist):
   if channel != 0 and i + 1 != channel : continue
   rfname = rootfileDir + rdfile +".root"
-  #rdtcut = 'channel==%d&&%s&&%s'%((i+1),stepch_tcut,cut)
-  rdtcut = '(channel==%d&&%s&&%s)'%((i+1),stepch_tcut,cut)
+  rdtcut = '(channel==%d&&%s%s)'%((i+1), stepch_tcut, "&&" + cut if cut != "" else "")
   rdhist_tmp = makeTH1(rfname, tname, 'data', binning, plotvar, rdtcut)
   rdhist.SetLineColor(1)
   rdhist.Add(rdhist_tmp)
