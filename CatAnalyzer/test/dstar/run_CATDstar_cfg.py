@@ -76,6 +76,7 @@ process.cattree = cms.EDAnalyzer("CATDstarAnalyzer",
     # input collection
     d0s    = cms.InputTag("catDstars","D0Cand"),
     dstars = cms.InputTag("catDstars","DstarCand"),
+    Jpsis  = cms.InputTag("catDstars","JpsiCand"),
     matchingDeltaR = cms.double(0.15),
     partonTop_channel = cms.InputTag("partonTop","channel"),
     partonTop_modes = cms.InputTag("partonTop", "modes"),

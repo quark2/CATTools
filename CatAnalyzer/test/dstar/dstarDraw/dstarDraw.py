@@ -39,9 +39,12 @@ datasets = json.load(open("%s/src/CATTools/CatAnalyzer/data/dataset/dataset.json
 #treename = 'nom'
 treename = 'nom'
 step = 1
-channel = 3
-cut = 'tri!=0&&filtered==1'
-weight = 'genweight*puweight*mueffweight*eleffweight*tri*topPtWeight'
+channel = 0
+cut = '(channel == 3 ? tri!=0 : 1 == 1)'
+#cut = '(channel != 3 || tri!=0)'
+#cut = 'tri!=0&&filtered==1'
+weight = 'genweight*puweight*mueffweight*eleffweight*(channel==3 ? tri : 1)*topPtWeight'
+#weight = 'genweight*puweight*mueffweight*eleffweight*tri*topPtWeight'
 binning = [60, 20, 320]
 plotvar = 'll_m'
 x_name = 'mass [GeV]'
@@ -91,8 +94,8 @@ tname = "cattree/%s"%(treename)
 
 #cut define
 stepch_tcut = 'step>=%i%s'%(step, "&&channel==%i"%(channel) if channel != 0 else "")
-tcutonly = '%s&&%s'%(stepch_tcut,cut)
-tcut = '(%s)*(%s)'%(tcutonly,weight)
+tcutonly = '%s%s'%(stepch_tcut, "&&" + cut if cut != "" else "")
+tcut = '(%s)*(%s)'%(tcutonly, weight)
 
 #if   channel == 1: 
 #  ttother_tcut = "!(gen_partonChannel==2 && ((gen_partonMode1==1 && gen_partonMode2==2) || (gen_partonMode1==2 && gen_partonMode2==1)))"

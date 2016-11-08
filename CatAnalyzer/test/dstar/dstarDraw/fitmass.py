@@ -7,6 +7,9 @@ ROOT.gROOT.SetBatch(True)
 ROOT.gSystem.Load("libRooFit")
 
 
+nFitType = 0
+
+
 def myGetPosMaxHist(hist, nNumBin):
   dMaxBinCont = -1048576.0
   nIdxBinMax = 0
@@ -139,9 +142,22 @@ def myFitInvMassWithLandau(hist, strName, x, binning, dicStyle):
 
 
 def myFitInvMass(hist, strName, x, binning, dicStyle):
-  return myFitInvMassWithLandau(hist, strName, x, binning, dicStyle)
-  #return myFitInvMassWithHalfGaussian(hist, x, binning, dicStyle)
+  if nFitType == 0 : # Landau
+    return myFitInvMassWithLandau(hist, strName, x, binning, dicStyle)
+  elif nFitType == 1 : # Gaussian
+    return myFitInvMassWithHalfGaussian(hist, strName, x, binning, dicStyle)
 
+
+if len(sys.argv) >= 3 :
+  if sys.argv[ 2 ] == "Landau" :
+    nFitType = 0
+  elif sys.argv[ 2 ] == "Gaussian" :
+    nFitType = 1
+    print "Gaussian go"
+  else :
+    print "Error: wrong fitting type"
+    sys.exit(2)
+    
 
 ################################################################
 ## Reading the configuration file
@@ -218,14 +234,17 @@ for strKey in dicHists.keys():
   
   x = ROOT.RooRealVar("invmass_" + strKey, histCurr.GetXaxis().GetTitle(), binning[1], binning[2])
   
+  nFitTypeOrg = nFitType
+  
   if "Gen" not in dicHists or dicHists[ "Gen" ] == 0: 
     print "##### Using Landau distribution #####"
-    dicHists[ strKey ][ "fitres" ] = myFitInvMassWithLandau(histCurr, strKey, 
-      x, binning, dicHistoStyle[ strStyleCurr ])
   else:
-    print "##### Using Gaussian distribution #####"
-    dicHists[ strKey ][ "fitres" ] = myFitInvMassWithHalfGaussian(histCurr, strKey, 
-      x, binning, dicHistoStyle[ strStyleCurr ])
+    print "##### Using Gaussian distribution for Gen #####"
+    nFitType = 1
+
+  dicHists[ strKey ][ "fitres" ] = myFitInvMass(histCurr, strKey, x, binning, dicHistoStyle[ strStyleCurr ])
+
+  nFitType = nFitTypeOrg
 
   # -- Dumping
   print "------ Peak (%s) by RooFit : %f, Err : %f, chi : %f"%(strKey, 

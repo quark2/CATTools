@@ -145,9 +145,10 @@ if strType != "" :
 #elif channel == 2: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==2 && gen_partonMode2==2))"
 #elif channel == 3: ttother_tcut = "!(gen_partonChannel==2 && (gen_partonMode1==1 && gen_partonMode2==1))"
 stepch_tcut = 'step>=%i%s'%(step, "&&channel==%i"%(channel) if channel != 0 else "")
-tcut = '(%s&&%s)*(%s)'%(stepch_tcut,cut,weight + weightTopPT)
+tcutonly = '%s%s'%(stepch_tcut, "&&" + cut if cut != "" else "")
+tcut = '(%s)*(%s)'%(tcutonly, weight + weightTopPT)
 #ttother_tcut = '(%s&&%s&&%s)*(%s)'%(stepch_tcut,cut,ttother_tcut,weight)
-rd_tcut = '%s&&%s'%(stepch_tcut,cut)
+rd_tcut = '%s&&%s'%(stepch_tcut, cut)
 print "TCut =",tcut
 
 ################################################################
