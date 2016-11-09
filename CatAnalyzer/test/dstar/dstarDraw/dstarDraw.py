@@ -139,6 +139,8 @@ for i, mcname in enumerate(mcfilelist):
   mchist.SetLineColor(colour)
   mchist.SetFillColor(colour)
   mchistList.append(mchist)
+  
+  print "%s : %f, %f, %f, %f"%(mcname, scale, scale * wentries, wentries, mchist.Integral())
  
   if 'TT' in mcname:
     if len(binning) == 3:

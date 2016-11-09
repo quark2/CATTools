@@ -10,144 +10,78 @@ ROOT.gSystem.Load("libRooFit")
 nFitType = 0
 
 
-def myGetPosMaxHist(hist, nNumBin):
-  dMaxBinCont = -1048576.0
-  nIdxBinMax = 0
-
-  for i in range(nNumBin):
-    dPointData = hist.GetBinContent(i)
-    if dMaxBinCont < dPointData: 
-      dMaxBinCont = dPointData
-      nIdxBinMax = i
-
-  return nIdxBinMax
-
-
-# -- For half-Gaussian distribution
-"""
-def myFitInvMassWithHalfGaussianRuined(hist, suffix, binning):
-  dSizeBin = 1.0 * ( binning[2] - binning[1] ) / binning[0]
-  dXPeak = binning[1] + myGetPosMaxHist(hist, binning[0]) * dSizeBin
-  dMaxFitRange = dXPeak + 4 * dSizeBin
-  
-  tf1 = ROOT.TF1("f1_fit","gaus", 0, dMaxFitRange)
-  hist.Fit(tf1)
-  
-  x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
-  xfitarg = ROOT.RooArgList(x, "invmass")
-  dh = ROOT.RooDataHist("dh","data histogram", xfitarg, hist)
-  
-  dSigma = tf1.GetParameter(2)
-  dSigmaError = tf1.GetParError(2) * 10.0
-
-  CB_mean   = ROOT.RooRealVar("mean","mean", dXPeak, dXPeak - dSizeBin, dXPeak + dSizeBin)
-  CB_sigma  = ROOT.RooRealVar("sigma","sigma",dSigma, dSigma - dSigmaError, dSigma + dSigmaError)
-  
-  sig_pdf   = ROOT.RooGaussian("sig_fit","signal p.d.f",x, CB_mean, CB_sigma)
-  model = sig_pdf
-  
-  fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save(), 
-    ROOT.RooFit.Range(0, dMaxFitRange))
-  
-  top_mass_frame = x.frame()
-  dh.plotOn(top_mass_frame)
-
-  model.plotOn(top_mass_frame)
-  model.plotOn(top_mass_frame, ROOT.RooFit.Components(ROOT.RooArgSet(sig_pdf)),
-    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(ROOT.kDashed))
-  
-  return {"frame":top_mass_frame, "peak_val":CB_mean.getVal(), "peak_err":CB_mean.getError(), 
-    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError()}
-"""
-
-def myFitInvMassWithHalfGaussian(hist, strName, x, binning, dicStyle):
-  tf1 = ROOT.TF1("f1_fit","gaus", binning[1], binning[2])
-  hist.Fit(tf1)
-  
-  #x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
-  xfitarg = ROOT.RooArgList(x, "invmass")
-  dh = ROOT.RooDataHist("dh","data histogram", xfitarg, hist)
-  
-  dSigma = tf1.GetParameter(2)
-  dSigmaError = tf1.GetParError(2) * 10.0
-
-  CB_MPV    = ROOT.RooRealVar("mean" + dicStyle[ "suffix" ], "mean" + dicStyle[ "suffix" ], 
-    tf1.GetParameter(1), binning[1], binning[2])
-  CB_sigma  = ROOT.RooRealVar("sigma" + dicStyle[ "suffix" ], "sigma" + dicStyle[ "suffix" ], 
-    dSigma, dSigma - dSigmaError, dSigma + dSigmaError)
-  
-  sig_pdf   = ROOT.RooGaussian("sig_fit","signal p.d.f", x, CB_MPV, CB_sigma)
-  model = sig_pdf
-  
-  fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save())
-  
-  top_mass_frame = x.frame()
-  strNameHisto = "roofithisto_" + strName
-  dh.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameHisto), 
-    ROOT.RooFit.MarkerColor(dicStyle[ "color" ]), ROOT.RooFit.MarkerStyle(dicStyle[ "marker" ]))
-  
-  #model.paramOn(top_mass_frame, ROOT.RooFit.Format("NELU", ROOT.RooFit.AutoPrecision(2)), 
-  #  ROOT.RooFit.Layout(0.1, 0.4, 0.9))
-
-  strNameCurve = "fittingcurve_" + strName
-  model.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameCurve), 
-    ROOT.RooFit.LineColor(dicStyle[ "color" ]), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
-  model.plotOn(top_mass_frame, ROOT.RooFit.Components(ROOT.RooArgSet(sig_pdf)),
-    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
-  
-  return {"frame":top_mass_frame, "histo":strNameHisto, "graph":strNameCurve, 
-    "peak_val":CB_MPV.getVal(), "peak_err":CB_MPV.getError(), 
-    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError(), "chi2":top_mass_frame.chiSquare()}
-
-
-# -- For Landau distribution
-def myFitInvMassWithLandau(hist, strName, x, binning, dicStyle):
-  tf1 = ROOT.TF1("f1_fit","landau", binning[1], binning[2])
-  hist.Fit(tf1)
-  
-  #x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[1], binning[2])
-  xfitarg = ROOT.RooArgList(x, "invmass")
-  dh = ROOT.RooDataHist("dh","data histogram", xfitarg, hist)
-  
-  dSigma = tf1.GetParameter(2)
-  dSigmaError = tf1.GetParError(2) * 10.0
-
-  CB_MPV    = ROOT.RooRealVar("mean" + dicStyle[ "suffix" ], "mean" + dicStyle[ "suffix" ], 
-    tf1.GetParameter(1), binning[1], binning[2])
-  CB_sigma  = ROOT.RooRealVar("sigma" + dicStyle[ "suffix" ], "sigma" + dicStyle[ "suffix" ], 
-    dSigma, dSigma - dSigmaError, dSigma + dSigmaError)
-  
-  sig_pdf   = ROOT.RooLandau("sig_fit","signal p.d.f", x, CB_MPV, CB_sigma)
-  model = sig_pdf
-  
-  fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save())
-  
-  top_mass_frame = x.frame()
-  strNameHisto = "roofithisto_" + strName
-  dh.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameHisto), 
-    ROOT.RooFit.MarkerColor(dicStyle[ "color" ]), ROOT.RooFit.MarkerStyle(dicStyle[ "marker" ]))
-  
-  #model.paramOn(top_mass_frame, ROOT.RooFit.Format("NELU", ROOT.RooFit.AutoPrecision(2)), 
-  #  ROOT.RooFit.Layout(0.1, 0.4, 0.9))
-
-  strNameCurve = "fittingcurve_" + strName
-  model.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameCurve), 
-    ROOT.RooFit.LineColor(dicStyle[ "color" ]), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
-  model.plotOn(top_mass_frame, ROOT.RooFit.Components(ROOT.RooArgSet(sig_pdf)),
-    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
-  
-  return {"frame":top_mass_frame, "histo":strNameHisto, "graph":strNameCurve, 
-    "peak_val":CB_MPV.getVal(), "peak_err":CB_MPV.getError(), 
-    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError(), "chi2":top_mass_frame.chiSquare()}
-
-
-def myFitInvMass(hist, strName, x, binning, dicStyle):
+def myGetNameFit(): 
   if nFitType == 0 : # Landau
-    return myFitInvMassWithLandau(hist, strName, x, binning, dicStyle)
+    return "landau"
+  if nFitType == 1 : # Gaussian
+    return "gaus"
+
+
+def myGetFitFunc(name, title, xvar, centralvar, sigmavar):
+  if nFitType == 0 : # Landau
+    return ROOT.RooLandau(name, title, xvar, centralvar, sigmavar)
+  if nFitType == 1 : # Gaussian
+    return ROOT.RooGaussian(name, title, xvar, centralvar, sigmavar)
+
+
+def myFitInvMass(hist, strName, x, binning, range, dicStyle):
+  tf1 = ROOT.TF1("f1_fit", myGetNameFit(), binning[ 1 ], binning[ 2 ])
+  hist.Fit(tf1)
+  
+  #x = ROOT.RooRealVar("invmass",hist.GetXaxis().GetTitle(), binning[ 1 ], binning[ 2 ])
+  xfitarg = ROOT.RooArgList(x, "invmass")
+  dh = ROOT.RooDataHist("dh", "data histogram", xfitarg, hist)
+  
+  dSigma = tf1.GetParameter(2)
+  dSigmaError = tf1.GetParError(2) * 10.0
+  
+  fMinRange = binning[ 1 ]
+  fMaxRange = binning[ 2 ]
+  
+  if len(range) > 0 : 
+    fMinRange = range[ 0 ]
+    fMaxRange = range[ 1 ]
+
+  CB_central = ROOT.RooRealVar("mean" + dicStyle[ "suffix" ], "mean" + dicStyle[ "suffix" ], 
+    tf1.GetParameter(1), fMinRange, fMaxRange)
+  CB_sigma   = ROOT.RooRealVar("sigma" + dicStyle[ "suffix" ], "sigma" + dicStyle[ "suffix" ], 
+    dSigma, dSigma - dSigmaError, dSigma + dSigmaError)
+  
+  #sig_pdf   = ROOT.RooLandau("sig_fit", "signal p.d.f", x, CB_central, CB_sigma)
+  sig_pdf   = myGetFitFunc("sig_fit", "signal p.d.f", x, CB_central, CB_sigma)
+  model = sig_pdf
+  
+  fitResult = model.fitTo(dh, ROOT.RooFit.Extended(False), ROOT.RooFit.Save())
+  
+  top_mass_frame = x.frame()
+  strNameHisto = "roofithisto_" + strName
+  dh.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameHisto), 
+    ROOT.RooFit.MarkerColor(dicStyle[ "color" ]), ROOT.RooFit.MarkerStyle(dicStyle[ "marker" ]))
+  
+  #model.paramOn(top_mass_frame, ROOT.RooFit.Format("NELU", ROOT.RooFit.AutoPrecision(2)), 
+  #  ROOT.RooFit.Layout(0.1, 0.4, 0.9))
+
+  strNameCurve = "fittingcurve_" + strName
+  model.plotOn(top_mass_frame, ROOT.RooFit.Name(strNameCurve), 
+    ROOT.RooFit.LineColor(dicStyle[ "color" ]), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
+  model.plotOn(top_mass_frame, ROOT.RooFit.Components(ROOT.RooArgSet(sig_pdf)),
+    ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.LineStyle(dicStyle[ "line" ]))
+  
+  return {"frame":top_mass_frame, "histo":strNameHisto, "graph":strNameCurve, 
+    "peak_val":CB_central.getVal(), "peak_err":CB_central.getError(), 
+    "sigma_val":CB_sigma.getVal(), "sigma_err":CB_sigma.getError(), "chi2":top_mass_frame.chiSquare()}
+
+
+"""
+def myFitInvMass(hist, strName, x, binning, range, dicStyle):
+  if nFitType == 0 : # Landau
+    return myFitInvMassWithLandau(hist, strName, x, binning, range, dicStyle)
   elif nFitType == 1 : # Gaussian
-    return myFitInvMassWithHalfGaussian(hist, strName, x, binning, dicStyle)
+    return myFitInvMassWithHalfGaussian(hist, strName, x, binning, range, dicStyle)
+"""
 
 
+"""
 if len(sys.argv) >= 3 :
   if sys.argv[ 2 ] == "Landau" :
     nFitType = 0
@@ -157,7 +91,35 @@ if len(sys.argv) >= 3 :
   else :
     print "Error: wrong fitting type"
     sys.exit(2)
-    
+"""
+################################################################
+## Getting inputs
+################################################################
+strFitType = "Landau"
+rangeFit = []
+
+try:
+    opts, args = getopt.getopt(sys.argv[2:], "hdnot:r:",["type","range"])
+except getopt.GetoptError:          
+    print 'Usage : ./fitmass.py <json> -t <type> -r <range>'
+    sys.exit(2)
+for opt, arg in opts:
+    if opt == '-h':
+        print 'Usage : ./fitmass.py <json> -t <type> -r <range>'
+        sys.exit()
+    elif opt in ("-t", "--type"):
+        strFitType = arg
+    elif opt in ("-r", "--range"):
+        rangeFit = eval(arg)
+
+if strFitType == "Landau" :
+  nFitType = 0
+elif strFitType == "Gaussian" :
+  nFitType = 1
+  print "Gaussian go"
+else :
+  print "Error: wrong fitting type"
+  sys.exit(2)
 
 ################################################################
 ## Reading the configuration file
@@ -242,7 +204,8 @@ for strKey in dicHists.keys():
     print "##### Using Gaussian distribution for Gen #####"
     nFitType = 1
 
-  dicHists[ strKey ][ "fitres" ] = myFitInvMass(histCurr, strKey, x, binning, dicHistoStyle[ strStyleCurr ])
+  dicHists[ strKey ][ "fitres" ] = myFitInvMass(histCurr, strKey, x, binning, 
+    rangeFit, dicHistoStyle[ strStyleCurr ])
 
   nFitType = nFitTypeOrg
 
