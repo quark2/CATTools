@@ -10,7 +10,7 @@ ROOT.gROOT.SetBatch(True)
 strFilenameRootdir = "../rootdirPath.txt"
 
 fRootDir = open(strFilenameRootdir, "r")
-rootfileDir = "/xrootd" + fRootDir.readline().split("\r")[0].split("\n")[0] + "/cattree_"
+rootfileDir = fRootDir.readline().split("\r")[0].split("\n")[0] + "cattree_"
 fRootDir.close()
 
 
