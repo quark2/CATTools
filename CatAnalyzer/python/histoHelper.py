@@ -226,7 +226,7 @@ def drawTH1(name, cmsLumi, mclist, data, x_name, y_name, doLog=False, doRatio=Tr
     iPos = 0
     if( iPos==0 ):
         cmsLumi.relPosX = 0.1
-    cmsLumi.CMS_lumi(pads[0], 4, iPos)
+    cmsLumi.CMS_lumi(pads[0], 0, iPos)
 
     canv.Modified()
     canv.Update()
@@ -311,12 +311,4 @@ def set_palette(name="", ncontours=999):
     npoints = len(s)
     TColor.CreateGradientColorTable(npoints, s, r, g, b, ncontours)
     gStyle.SetNumberContours(ncontours)
-def fBreitWigner(x,par):
-    '''
-    par[0] = constant
-    par[1] = mean
-    par[2] = gamma
-    '''
-    pi = ROOT.TMath.Pi()
-    return par[2]/((x[0]-par[1])*(x[0]-par[1]) + par[2]*par[2]/4) * (2/pi) * par[0]
 

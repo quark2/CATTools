@@ -35,6 +35,13 @@ namespace cat {
   const double WP_BTAG_cMVAv2L = -0.715; // -
   const double WP_BTAG_cMVAv2M =  0.185; // -
   const double WP_BTAG_cMVAv2T =  0.875; // -
+  // pfCombinedCvsLJetTags
+  const std::string CTAG_CvsL = "pfCombinedCvsLJetTags";
+  const double WP_CTAG_CvsLM = -0.1; // -
+  const double WP_CTAG_CvsLT = 0.69; // -
+  const std::string CTAG_CvsB = "pfCombinedCvsBJetTags";
+  const double WP_CTAG_CvsBM = 0.08; // -
+  const double WP_CTAG_CvsBT = -0.45; // -
 
   class Jet : public Particle{
   public:
@@ -84,6 +91,7 @@ namespace cat {
     float smearedResUp(int era = 0) const { return smearedRes(+1, era); };
     float smearedResDown(int era = 0) const { return smearedRes(-1, era); };
 
+    float qgLikelihood() const { return qgLikelihood_; }
     
     void setLooseJetID(bool id) { looseJetID_ = id; }
     void setTightJetID(bool id) { tightJetID_ = id; }
@@ -114,6 +122,8 @@ namespace cat {
       fJER_ = fJER; fJERUp_ = fJERUp; fJERDown_ = fJERDown;
     }
 
+    void setQGLikelihood(float f) { qgLikelihood_ = f; }
+
   private:
 
     edm::FwdRef<reco::GenJetCollection>  genJetFwdRef_;
@@ -143,6 +153,8 @@ namespace cat {
     float shiftedEnUp_;
 
     float fJER_, fJERUp_, fJERDown_;
+
+    float qgLikelihood_;
 
   };
 }
