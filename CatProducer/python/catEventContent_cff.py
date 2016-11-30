@@ -50,5 +50,5 @@ catEventContentTOPMC.extend([
     ])
 
 catEventContentSecVertexs.extend([
-    'keep *_catSecVertexs_catDstars_*',
+    'keep *_catSecVertexs_*_*',
     ])
