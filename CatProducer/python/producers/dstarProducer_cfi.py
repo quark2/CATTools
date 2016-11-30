@@ -8,5 +8,5 @@ catDstars = cms.EDProducer("CATDStarProducer",
   d0MassCut = cms.double(0.5),
   d0MassWindow = cms.double(0.05),
   vertexLabel = cms.InputTag("catVertex"),
-  applyCut = cms.bool(True)
+  applySoftLeptonCut = cms.bool(True)
 )
