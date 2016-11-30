@@ -33,6 +33,7 @@ private:
   edm::EDGetTokenT<edm::View<reco::Candidate> > leptonToken_;
   edm::EDGetTokenT<edm::View<reco::Candidate> > jetToken_;
   edm::EDGetTokenT<float> metToken_, metphiToken_;
+  double applyJetCharge_;
 
 private:
   typedef reco::Candidate::LorentzVector LV;
@@ -55,6 +56,7 @@ TTLLKinSolutionProducer::TTLLKinSolutionProducer(const edm::ParameterSet& pset)
   jetToken_ = mayConsume<edm::View<reco::Candidate> >(pset.getParameter<edm::InputTag>("jets"));
   metToken_ = consumes<float>(pset.getParameter<edm::InputTag>("met"));
   metphiToken_ = consumes<float>(pset.getParameter<edm::InputTag>("metphi"));
+  applyJetCharge_ = pset.getParameter<double>("applyJetCharge");
 
   auto solverPSet = pset.getParameter<edm::ParameterSet>("solver");
   auto algoName = solverPSet.getParameter<std::string>("algo");
@@ -156,9 +158,16 @@ void TTLLKinSolutionProducer::produce(edm::Event& event, const edm::EventSetup&)
         inputLV[4] = jet2->p4();
 
         solver_->solve(inputLV);
-        if ( solver_->quality() > quality )
+        double weight = 1.0;
+        if ( quality< 10*1e-5) {
+          if      ( lep1->charge() > 0 && lep2->charge()<0 && jet1->charge()<jet2->charge() ) weight = applyJetCharge_; 
+          else if ( lep1->charge() < 0 && lep2->charge()>0 && jet1->charge()>jet2->charge() ) weight = applyJetCharge_; 
+        }
+          
+        double solver_quality = solver_->quality() * weight;
+        if ( solver_quality > quality )
         {
-          quality = solver_->quality();
+          quality = solver_quality;
           selectedJet1 = jet1;
           selectedJet2 = jet2;
           nu1LV = solver_->nu1();

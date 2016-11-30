@@ -6,5 +6,6 @@ ttbarDileptonKin = cms.EDProducer("TTLLKinSolutionProducer",
     jets = cms.InputTag("eventsTTLL", "jets"), ## jet in LorentzVector
     met = cms.InputTag("eventsTTLL", "met"), ## MET pt in float 
     metphi = cms.InputTag("eventsTTLL", "metphi"), ## MET phi in float
+    applyJetCharge = cms.double(1.0),
 )
 

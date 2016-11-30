@@ -30,6 +30,8 @@ struct Data {
   float solverQuality;
   TLorentzVector* bjet[2];
   int  bjet_charge[2];
+  int  bjet_pdgId[2];
+  int  bjet_nTracks[2];
   Data(){
     reset();
   }
@@ -49,6 +51,8 @@ struct Data {
       top_mass[i]= 0.f;
       bjet[i] = nullptr;
       bjet_charge[i] = 0;
+      bjet_pdgId[i] = 0;
+      bjet_nTracks[i] = 0;
     }
     solverQuality = 0.f;
   }
@@ -67,6 +71,7 @@ struct Data {
     tree->Branch("Solver",&(data->solverQuality), "solverQuality/F");
     tree->Branch("SolvedBJet1","TLorentzVector",&(data->bjet[0]));
     tree->Branch("SolvedBJet2","TLorentzVector",&(data->bjet[1]));
+    tree->Branch("SolvedBJet_info",&(data->bjet_charge[0]), "bjet_charge[2]/I:bjet_pdgId[2]/I:bjet_nTracks[2]/I");
   }
 };
 
