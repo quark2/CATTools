@@ -57,6 +57,7 @@ if doSecVertex:
     process.catOut.outputCommands.extend(catEventContentSecVertexs)
 
 if doDstar :
+    process.load("TrackingTools.TransientTrack.TransientTrackBuilder_cfi")
     process.catOut.outputCommands.extend(['keep *_catDstars_*_*',])
 
 
