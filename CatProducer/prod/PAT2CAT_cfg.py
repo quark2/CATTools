@@ -1,6 +1,6 @@
 from CATTools.CatProducer.catTemplate_cfg import *
 ## some options
-doSecVertex=True # for jpsi candidates
+doSecVertex=False # for jpsi candidates
 doDstar=True      # for Dstar meson.
     
 ## setting up arguements
@@ -57,6 +57,7 @@ if doSecVertex:
     process.catOut.outputCommands.extend(catEventContentSecVertexs)
 
 if doDstar :
+    process.load("TrackingTools.TransientTrack.TransientTrackBuilder_cfi")
     process.catOut.outputCommands.extend(['keep *_catDstars_*_*',])
 
 

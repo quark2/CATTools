@@ -10,6 +10,6 @@ for file in lists :
 
 
 for dir in dirs :
-  cmd = "hadd jcTree_%s.root %s/jet_charge_tree_*.root"%(dir,dir)
+  cmd = "hadd data/jcTree_%s.root %s/jet_charge_tree_*.root"%(dir,dir)
   print cmd
   os.system(cmd)

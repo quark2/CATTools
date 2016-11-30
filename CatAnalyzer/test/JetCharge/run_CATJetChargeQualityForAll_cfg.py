@@ -45,48 +45,31 @@ process.agen = cms.EDAnalyzer("CATGenTopAnalysis",
     filterTaus = cms.bool(False),
 )
 
-process.cattree = cms.EDAnalyzer("JetChargeAnalyzer",
-    solverCands = cms.InputTag("ttbarDileptonKin"),
-    solverQuality = cms.InputTag("ttbarDileptonKin","quality"),
-    muon = cms.PSet(
-        src = cms.InputTag("catMuons"),
-    ),
-    electron = cms.PSet(
-        src = cms.InputTag("catElectrons"),
-    ),
-    jets = cms.InputTag("catJets"),
-)
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("jet_charge_tree.root"
-))
-
-"""
-process.catOut = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string('catTuple.root'),
-    outputCommands = cms.untracked.vstring(['drop *','keep *_ttbar*_*_*'])
+    fileName = cms.string("cmskin_quality_forAll.root")
 )
-"""
-#process.catOutPath = cms.EndPath(process.catOut)
+process.qualityAna = cms.EDAnalyzer("TTLLKinQualityAnalyzerForAll",
+    #solver = cms.PSet(algo = cms.string("CMSKin"),), 
+    leptons = cms.InputTag("eventsTTLL", "leptons"), ## lepton in LorentzVector
+    jets = cms.InputTag("eventsTTLL", "jets"), ## jet in LorentzVector
+    met = cms.InputTag("eventsTTLL", "met"), ## MET pt in float 
+    metphi = cms.InputTag("eventsTTLL", "metphi"), ## MET phi in float
+    applyJetCharge = cms.double(1.0),
+)
 
-#process.load("CATTools.CatProducer.catCandidates_cff")    
+process.qualityAna.solver = process.ttbarDileptonKinAlgoPSetCMSKin
 
 process.eventsTTLL.filters.ignoreTrig = cms.bool(True)
-#process.ttbarDileptonKinCMSKIN = process.ttbarDileptonKin.clone()
-#process.ttbarDileptonKinCMSKIN.algo = process.ttbarDileptonKinAlgoPSetCMSKin
 
-process.ttbarDileptonKin.algo = process.ttbarDileptonKinAlgoPSetCMSKin
-
-process.ttbarDileptonKin.applyJetCharge = cms.double(1.0)
-
+"""
 if ( options.isTT ) : 
   print "This is TT Samples. Run agen and filter parto."
   process.p = cms.Path(
-      process.agen + process.filterPartonTTLL* process.eventsTTLL * process.ttbarDileptonKin*process.cattree
+      process.agen + process.filterPartonTTLL* process.eventsTTLL * process.qualityAna
   )
 else : 
-  process.p = cms.Path( process.eventsTTLL * process.ttbarDileptonKin*process.cattree)
-#process.p = cms.Path(     process.agen + process.filterPartonTTLL* process.eventsTTLL * process.ttbarDileptonKin)   #*process.cattree) 
-
+"""
+process.p = cms.Path( process.eventsTTLL * process.qualityAna)
 
 if ( process.maxEvents.input <0 or process.maxEvents > 5000) :
   process.MessageLogger.cerr.FwkReport.reportEvery = 1000
